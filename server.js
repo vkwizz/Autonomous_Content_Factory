@@ -38,7 +38,8 @@ async function callLLM(systemPrompt, userPrompt) {
             { role: "system", content: systemPrompt + "\n\nIMPORTANT: Your response must be ONLY a valid JSON object. No markdown fences, no explanations, just raw JSON." },
             { role: "user", content: userPrompt }
         ],
-        temperature: 0.5
+        temperature: 0.5,
+        max_tokens: 8000
     });
     return extractJSON(response.choices[0].message.content);
 }
