@@ -153,11 +153,11 @@ ${JSON.stringify(factSheet, null, 2)}
 
 Generate exactly these 4 keys:
 1. "blog" — 400 words, markdown format. Structure: Hook/Problem → Solution → Technical Analysis (mention constraints and uncertainties from fact sheet) → Conclusion.
-2. "social" — A 5-post Twitter/X thread. STRICT FORMAT: each post must start with its number like "1/", "2/", etc. Each post is a separate string in an array. Example: ["1/ Logistics companies lose millions daily due to inefficient routing.", "2/ The answer lies in AI...", ...]. NO commas between posts, NO single paragraph.
+2. "social" — A 5-post Twitter/X thread. STRICT FORMAT: each post must start with its number like "1/", "2/", etc. Each post is a separate string in an array. Example: ["1/ Logistics companies lose...", "2/ The answer..."]
 3. "email" — 2-4 line teaser only, click-focused, starts with a hook question or bold claim.
-4. "linkedin" — Exactly 120 words. STRICT FORMAT: Start with a bold 1-line Hook. Then 2-3 lines of insight/storytelling grounded in the fact sheet. Mention one constraint or uncertainty. End with a thought-provoking question. Use line breaks between sections.
+4. "linkedin" — Exactly 120 words as a SINGLE string block. Start with a Hook, add storytelling grounded in the fact sheet, and mention one constraint. Use "\\n\\n" literally inside the string for paragraph spacing. Do not output code or arrays for this field.
 
-Return pure JSON with EXACTLY these 4 keys. "social" must be an ARRAY of strings, not a single string.`;
+Return pure JSON with EXACTLY these 4 keys. "social" must be an ARRAY of strings, "linkedin" must be a STRING.`;
 
             const agent2PromptB = `Using the following fact sheet, generate content. Use ONLY what is in the fact sheet.
 ${editorFeedback ? `\nCRITICAL FIXES NEEDED FROM PREVIOUS ATTEMPT:\n${editorFeedback}\n` : ""}
