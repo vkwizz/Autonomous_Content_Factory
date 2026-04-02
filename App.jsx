@@ -308,13 +308,21 @@ function AgentRoomPage() {
                                         entities: Array.isArray(data.data.entities) ? data.data.entities : [],
                                         metrics: Array.isArray(data.data.metrics) ? data.data.metrics : [],
                                         technical: Array.isArray(data.data.technical_details) ? data.data.technical_details : [],
+                                        constraints: Array.isArray(data.data.constraints) ? data.data.constraints : [],
+                                        uncertainties: Array.isArray(data.data.uncertainties) ? data.data.uncertainties : [],
+                                        risks: Array.isArray(data.data.risks) ? data.data.risks : [],
                                         ambiguities: Array.isArray(data.data.ambiguous_points) ? data.data.ambiguous_points : [],
                                         product: data.data.product || "Unknown"
                                     });
                                 } else if (data.type === 'drafts') {
+                                    // social may be an array of numbered posts or a plain string
+                                    const rawSocial = data.data.social || data.data.social_thread || "";
+                                    const socialText = Array.isArray(rawSocial)
+                                        ? rawSocial.join('\n\n')
+                                        : rawSocial;
                                     setOutputs({
                                         blog: data.data.blog || data.data.blog_post || "",
-                                        social: Array.isArray(data.data.social_thread) ? data.data.social_thread.join('\n\n') : (data.data.social_thread || data.data.social || ""),
+                                        social: socialText,
                                         email: data.data.email || data.data.email_teaser || "",
                                         linkedin: data.data.linkedin || "",
                                         instagram: Array.isArray(data.data.instagram) ? data.data.instagram : [],
@@ -479,18 +487,31 @@ function FinalReviewPage() {
                     <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
                     <p><strong>Value Proposition:</strong><br />{factSheet.valueProp}</p>
                     <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                    <p><strong>Core Features / Entities:</strong></p>
+                    <p><strong>Core Features:</strong></p>
                     <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                        {[...factSheet.features, ...factSheet.entities, ...factSheet.technical].filter(Boolean).slice(0, 6).map((f, i) => <li key={i}>{f}</li>)}
+                        {[...factSheet.features, ...factSheet.entities, ...factSheet.technical].filter(Boolean).slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
                     </ul>
-                    {factSheet.metrics && factSheet.metrics.length > 0 && (
-                        <>
-                            <p style={{ marginTop: '8px' }}><strong>Strict Metrics:</strong></p>
-                            <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                                {factSheet.metrics.slice(0, 3).map((f, i) => <li key={i}>{f}</li>)}
-                            </ul>
-                        </>
-                    )}
+                    {factSheet.constraints?.length > 0 && (<>
+                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
+                        <p><strong style={{ color: 'var(--warning)' }}>⚠ Constraints:</strong></p>
+                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                            {factSheet.constraints.map((c, i) => <li key={i}>{c}</li>)}
+                        </ul>
+                    </>)}
+                    {factSheet.uncertainties?.length > 0 && (<>
+                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
+                        <p><strong style={{ color: 'var(--accent)' }}>⚡ Uncertainties:</strong></p>
+                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                            {factSheet.uncertainties.map((u, i) => <li key={i}>{u}</li>)}
+                        </ul>
+                    </>)}
+                    {factSheet.metrics?.length > 0 && (<>
+                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
+                        <p><strong style={{ color: 'var(--success)' }}>📊 Strict Metrics:</strong></p>
+                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                            {factSheet.metrics.map((m, i) => <li key={i}>{m}</li>)}
+                        </ul>
+                    </>)}
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>

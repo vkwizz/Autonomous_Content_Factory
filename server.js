@@ -79,37 +79,40 @@ app.post('/api/generate', async (req, res) => {
         sendLog('Agent 1', 'Lead Research generating Fact Sheet from clean text...', 'var(--primary)', 2);
 
         const agent1SystemPrompt = `You are an analytical AI agent called "Lead Researcher".
-Your job is to extract structured, factual information from raw input text.
+Your job is to perform DEEP, EXHAUSTIVE extraction of structured facts from raw input text.
 
 Rules:
 - Do NOT generate marketing content
-- Only extract facts from the input
-- DO NOT guess or infer missing context (like names, brands, or events)
+- Extract EVERY fact, constraint, limitation, uncertainty, and risk explicitly mentioned in the input
+- If the input says "limited compute", "integration challenges", "road closures" — those are CONSTRAINTS and UNCERTAINTIES, extract them
+- DO NOT allow copywriter to use ANY concept not present in this fact sheet
 - Identify tone based on context (e.g. Technical, Marketing, Educational)
-- Be concise and accurate
+- Be thorough: an incomplete fact sheet causes hallucinations downstream
 - Output ONLY valid JSON`;
 
-        const agent1UserPrompt = `Analyze the following content and extract structured information:
+        const agent1UserPrompt = `Perform DEEP extraction on the following input. Your fact sheet will be the ONLY source of truth for all downstream AI agents.
 
 INPUT:
 """
 ${cleanText}
 """
 
-Extract:
+Extract EVERY field with maximum depth:
 - product (string, or "Unknown")
 - target_audience (string)
-- key_features (list of strings)
-- technical_details (list of strings)
-- value_proposition (string)
-- constraints (list of strings)
-- metrics (list of strings)
-- entities (list of strings)
-- events (list of strings)
-- tone (string, adapt personality to context)
-- ambiguous_points (list of strings)
+- key_features (list of detailed strings — include HOW each feature works if mentioned)
+- technical_details (list of strings — algorithms, systems, integrations)
+- value_proposition (string — specific, not generic)
+- constraints (list of strings — limitations, system requirements, integration challenges, compute limits)
+- uncertainties (list of strings — risks, unknowns, unpredictable events mentioned e.g. road closures, demand spikes)
+- risks (list of strings — failure modes, edge cases, potential issues)
+- metrics (list of strings — any numbers, KPIs, percentages mentioned)
+- entities (list of strings — company names, system names, people)
+- events (list of strings — launches, incidents, milestones)
+- tone (string — adapt to context: Technical, Marketing, Educational, etc.)
+- ambiguous_points (list of strings — anything unclear that needs flagging)
 
-Return pure JSON matching these exact keys.`;
+Return pure JSON matching these EXACT keys. Leave empty arrays [] if nothing found, never skip a key.`;
 
         const factSheet = await callLLM(agent1SystemPrompt, agent1UserPrompt);
         sendLog('Agent 1', `Found core value proposition: ${factSheet.value_proposition}`, 'var(--primary)', 1);
@@ -142,30 +145,30 @@ Rules:
 - Adapt your personality to the requested "tone" in the fact sheet (e.g. Analytical if Technical, Persuasive if Marketing).
 - Output ONLY valid JSON.`;
 
-            const agent2PromptA = `Using the following fact sheet, generate content.
+            const agent2PromptA = `Using the following fact sheet, generate content. Use ONLY what is in the fact sheet.
 ${editorFeedback ? `\nCRITICAL FIXES NEEDED FROM PREVIOUS ATTEMPT:\n${editorFeedback}\n` : ""}
 
 FACT SHEET:
 ${JSON.stringify(factSheet, null, 2)}
 
 Generate exactly these 4 keys:
-1. "blog" — 400 words, markdown format. Structure: Hook/Problem -> Solution -> Technical Analysis -> Conclusion.
-2. "social" — 5 Twitter/X posts thread. Hook on post 1, clean storytelling arc, no random stats.
-3. "email" — 2-4 line teaser, click-focused, hook + curiosity.
-4. "linkedin" — 100 words, storyteller tone + insight. Line breaks for readability.
+1. "blog" — 400 words, markdown format. Structure: Hook/Problem → Solution → Technical Analysis (mention constraints and uncertainties from fact sheet) → Conclusion.
+2. "social" — A 5-post Twitter/X thread. STRICT FORMAT: each post must start with its number like "1/", "2/", etc. Each post is a separate string in an array. Example: ["1/ Logistics companies lose millions daily due to inefficient routing.", "2/ The answer lies in AI...", ...]. NO commas between posts, NO single paragraph.
+3. "email" — 2-4 line teaser only, click-focused, starts with a hook question or bold claim.
+4. "linkedin" — Exactly 120 words. STRICT FORMAT: Start with a bold 1-line Hook. Then 2-3 lines of insight/storytelling grounded in the fact sheet. Mention one constraint or uncertainty. End with a thought-provoking question. Use line breaks between sections.
 
-Return pure JSON with EXACTLY these 4 keys.`;
+Return pure JSON with EXACTLY these 4 keys. "social" must be an ARRAY of strings, not a single string.`;
 
-            const agent2PromptB = `Using the following fact sheet, generate content.
+            const agent2PromptB = `Using the following fact sheet, generate content. Use ONLY what is in the fact sheet.
 ${editorFeedback ? `\nCRITICAL FIXES NEEDED FROM PREVIOUS ATTEMPT:\n${editorFeedback}\n` : ""}
 
 FACT SHEET:
 ${JSON.stringify(factSheet, null, 2)}
 
 Generate exactly these 3 keys:
-1. "instagram" — array of exactly 5 strings (visual captions, engaging hook, emoji ok).
-2. "flashcards" — array of exactly 5 objects each with "q" and "a" string keys.
-3. "insights" — array of exactly 5 short bullet strings (key takeaways).
+1. "instagram" — array of exactly 5 strings (visual captions, engaging hook, emoji ok, each based on a fact sheet item).
+2. "flashcards" — array of exactly 5 objects each with "q" and "a" string keys. IMPORTANT: Answers must be COMPLETE and DETAILED, citing specific data from the fact sheet (e.g. list multiple items, not just one word). Bad example: A: "Traffic data". Good example: A: "Real-time traffic data, weather conditions, and last-mile delivery patterns from the fact sheet's technical_details".
+3. "insights" — array of exactly 5 strings. Each insight must go BEYOND the obvious. Include: trade-offs, risks, engineering challenges, or unexpected implications pulled from the fact sheet's constraints, uncertainties, and risks fields. Bad: "AI improves delivery times". Good: "Accuracy may degrade during unpredictable events like road closures — a risk explicitly flagged in the system design".
 
 Return pure JSON with EXACTLY these 3 keys.`;
 
