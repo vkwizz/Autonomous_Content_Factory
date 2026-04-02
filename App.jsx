@@ -193,12 +193,19 @@ function CampaignStartPage() {
         loadFileText(e.target.files?.[0]);
     };
 
+    const handleSampleLoad = () => {
+        setSourceData("Acme Corp is launching the TerraPhone X, a $799 smartphone aimed at Gen Z creators. Core features include a 3-day battery life, 4K holographic display, and AI-editing suite. Tone should be energetic and persuasive. The goal is to drive pre-orders.");
+        navigate('/agent-room');
+    };
+
     return (
-        <div className="glass-panel" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>Start a New Campaign</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-                Upload your raw source material—a technical document, product feature list, or a transcript. Our agents will take it from here.
-            </p>
+        <div className="glass-panel fade-in" style={{ padding: '60px 40px', maxWidth: '800px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <h1 style={{ fontSize: '36px', marginBottom: '16px' }} className="title-gradient">Autonomous Content Factory</h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '16px', lineHeight: '1.6', maxWidth: '600px', margin: '0 auto' }}>
+                    Upload an unstructured fact sheet, technical spec, or transcript. Our multi-agent system will extract the core facts and launch a 360° marketing campaign.
+                </p>
+            </div>
 
             <input
                 ref={fileInputRef}
@@ -209,16 +216,21 @@ function CampaignStartPage() {
                 onChange={handleFilePick}
             />
             <div
-                className={`upload-zone ${isDragging ? 'drag-active' : ''}`}
+                className={`upload-zone fade-in ${isDragging ? 'drag-active' : ''}`}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleFileDrop}
                 onClick={() => fileInputRef.current?.click()}
-                style={{ cursor: 'pointer' }}
             >
                 <Upload className="upload-icon" />
-                <h3 style={{ marginBottom: '8px' }}>Drag & Drop or Click to Upload</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>Supports .txt, .md files — or paste text below</p>
+                <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Drag & Drop your source file</h3>
+                <p style={{ color: 'var(--text-muted)' }}>We accept .txt or .md files up to 50KB</p>
+
+                <div style={{ marginTop: '24px', position: 'relative', zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
+                    <button className="btn btn-secondary" onClick={handleSampleLoad} style={{ fontSize: '13px', padding: '8px 16px' }}>
+                        <Zap size={14} color="var(--warning)" /> Try Example Input
+                    </button>
+                </div>
             </div>
 
             <div style={{ marginTop: '24px' }}>
@@ -344,48 +356,48 @@ function AgentRoomPage() {
             </div>
 
             <div className="agent-grid">
-                <div className={`agent-card glass-panel ${currentStep === 1 ? 'active' : ''}`} style={{ color: 'var(--primary)' }}>
+                <div className={`agent-card glass-panel fade-in ${currentStep === 1 ? 'active' : ''}`} style={{ transitionDelay: '0.1s' }}>
                     <div className="agent-avatar"><Zap /></div>
-                    <h3>NLP Preprocessor</h3>
+                    <h4 className="text-gradient-primary">NLP Preprocessor</h4>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Text Cleanup</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 1 ? 1 : 0.3 }}>
-                        {currentStep === 1 ? 'Parsing...' : 'Standby'}
+                    <div className="agent-status" style={{ opacity: currentStep === 1 ? 1 : 0.4 }}>
+                        {currentStep === 1 ? <span className="typing-dot">Parsing</span> : 'Standby'}
                     </div>
                 </div>
 
-                <div className={`agent-card glass-panel ${currentStep === 2 ? 'active' : ''}`} style={{ color: 'var(--primary)' }}>
+                <div className={`agent-card glass-panel fade-in ${currentStep === 2 ? 'active' : ''}`} style={{ transitionDelay: '0.2s' }}>
                     <div className="agent-avatar"><BrainCircuit /></div>
-                    <h3>Lead Research</h3>
+                    <h4 className="text-gradient-primary">Lead Research</h4>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Fact Extractor</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 2 ? 1 : 0.3 }}>
-                        {currentStep === 2 ? 'Analyzing...' : 'Standby'}
+                    <div className="agent-status" style={{ opacity: currentStep === 2 ? 1 : 0.4 }}>
+                        {currentStep === 2 ? <span className="typing-dot">Extracting</span> : 'Standby'}
                     </div>
                 </div>
 
-                <div className={`agent-card glass-panel ${currentStep === 3 ? 'active' : ''}`} style={{ color: 'var(--warning)' }}>
+                <div className={`agent-card glass-panel fade-in ${(currentStep === 3 || currentStep === 4) ? 'active' : ''}`} style={{ transitionDelay: '0.3s' }}>
                     <div className="agent-avatar"><PenTool /></div>
-                    <h3>Copywriter</h3>
+                    <h4 style={{ color: 'var(--warning)' }}>Copywriter</h4>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>The Voice</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 3 ? 1 : 0.3 }}>
-                        {currentStep === 3 ? 'Drafting...' : 'Standby'}
+                    <div className="agent-status" style={{ opacity: (currentStep === 3 || currentStep === 4) ? 1 : 0.4 }}>
+                        {(currentStep === 3 || currentStep === 4) ? <span className="typing-dot">Generating</span> : 'Standby'}
                     </div>
                 </div>
 
-                <div className={`agent-card glass-panel ${currentStep === 4 ? 'active' : ''}`} style={{ color: 'var(--warning)' }}>
+                <div className={`agent-card glass-panel fade-in ${currentStep === 4 ? 'active' : ''}`} style={{ transitionDelay: '0.4s' }}>
                     <div className="agent-avatar"><Search /></div>
-                    <h3>NLP Validator</h3>
+                    <h4 style={{ color: 'var(--warning)' }}>NLP Validator</h4>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Keyword Matcher</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 4 ? 1 : 0.3 }}>
-                        {currentStep === 4 ? 'Auditing...' : 'Standby'}
+                    <div className="agent-status" style={{ opacity: currentStep === 4 ? 1 : 0.4 }}>
+                        {currentStep === 4 ? <span className="typing-dot">Scanning</span> : 'Standby'}
                     </div>
                 </div>
 
-                <div className={`agent-card glass-panel ${currentStep === 5 ? 'active' : ''}`} style={{ color: 'var(--success)' }}>
-                    <div className="agent-avatar"><ShieldCheck /></div>
-                    <h3>Editor-in-Chief</h3>
+                <div className={`agent-card glass-panel fade-in ${currentStep === 5 ? 'active' : ''}`} style={{ transitionDelay: '0.5s' }}>
+                    <div className="agent-avatar"><ShieldCheck color="var(--success)" /></div>
+                    <h4 style={{ color: 'var(--success)' }}>Editor-in-Chief</h4>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Gatekeeper</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 5 ? 1 : 0.3 }}>
-                        {currentStep === 5 ? 'Final Review...' : 'Standby'}
+                    <div className="agent-status" style={{ opacity: currentStep === 5 ? 1 : 0.4 }}>
+                        {currentStep === 5 ? <span className="typing-dot">Reviewing</span> : 'Standby'}
                     </div>
                 </div>
             </div>
