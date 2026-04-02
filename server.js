@@ -21,11 +21,11 @@ const DEFAULT_MODEL = process.env.MODEL_NAME || (process.env.GROQ_API_KEY ? 'lla
 
 function extractJSON(text) {
     // Try direct parse first
-    try { return JSON.parse(text); } catch (_) {}
+    try { return JSON.parse(text); } catch (_) { }
     // Extract first {...} block from the response
     const match = text.match(/\{[\s\S]*\}/);
     if (match) {
-        try { return JSON.parse(match[0]); } catch (_) {}
+        try { return JSON.parse(match[0]); } catch (_) { }
     }
     throw new Error('Could not extract valid JSON from model response.');
 }
@@ -33,6 +33,7 @@ function extractJSON(text) {
 async function callLLM(systemPrompt, userPrompt) {
     const response = await openai.chat.completions.create({
         model: DEFAULT_MODEL,
+        response_format: { type: "json_object" },
         messages: [
             { role: "system", content: systemPrompt + "\n\nIMPORTANT: Your response must be ONLY a valid JSON object. No markdown fences, no explanations, just raw JSON." },
             { role: "user", content: userPrompt }
@@ -46,17 +47,17 @@ app.post('/api/generate', async (req, res) => {
     // Optional: Use Server-Sent Events (SSE) to send logs in real time, or just return all at once.
     // For simplicity, we'll return a full response, but the UI can simulate the typing if we don't use SSE.
     // Since the user asked to make it LOOK advanced with Agent Chat Log, let's use SSE so the frontend gets live events!
-    
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    
+
     const sendLog = (agent, msg, color, step) => {
         res.write(`data: ${JSON.stringify({ type: 'log', log: { agent, msg, color, step } })}\n\n`);
     };
 
     const { inputText } = req.body;
-    
+
     if (!inputText) {
         res.write(`data: ${JSON.stringify({ type: 'error', error: 'Input text is required' })}\n\n`);
         return res.end();
@@ -65,18 +66,18 @@ app.post('/api/generate', async (req, res) => {
     try {
         // --- STEP 1: NLP Preprocessing ---
         sendLog('System', 'NLP Preprocessing: Tokenizing, cleaning, and extracting entities...', 'var(--primary)', 1);
-        
+
         let doc = nlp(inputText);
         doc.normalize();
         const entities = doc.topics().out('array');
-        
+
         sendLog('NLP Engine', `Detected entities/keywords: ${entities.slice(0, 5).join(', ')}`, 'var(--primary)', 1);
-        
+
         const cleanText = doc.text();
 
         // --- STEP 2: Agent 1 (Lead Research) ---
         sendLog('Agent 1', 'Lead Research generating Fact Sheet from clean text...', 'var(--primary)', 2);
-        
+
         const agent1SystemPrompt = `You are an analytical AI agent called "Lead Researcher".
 Your job is to extract structured, factual information from raw input text.
 
@@ -112,11 +113,11 @@ Return pure JSON matching these exact keys.`;
 
         const factSheet = await callLLM(agent1SystemPrompt, agent1UserPrompt);
         sendLog('Agent 1', `Found core value proposition: ${factSheet.value_proposition}`, 'var(--primary)', 1);
-        
+
         if (factSheet.ambiguous_points && factSheet.ambiguous_points.length > 0) {
             sendLog('Agent 1', `Flagged ambiguous info: ${factSheet.ambiguous_points[0]}`, 'var(--warning)', 1);
         }
-        
+
         res.write(`data: ${JSON.stringify({ type: 'factSheet', data: factSheet })}\n\n`);
         sendLog('System', 'Fact-Sheet completed. Passing to Creative Copywriter.', '', 3);
 
@@ -180,22 +181,22 @@ Return pure JSON with EXACTLY these 3 keys.`;
             sendLog('System', 'Executing local NLP Keyword Consistency check...', '', 4);
             const blogDoc = nlp(content.blog || content.blog_post || "");
             const textKeywords = blogDoc.topics().out('array').map(w => w.toLowerCase());
-            
+
             let missingFeatures = [];
             if (factSheet.key_features) {
-                 const keyFeatures = Array.isArray(factSheet.key_features) ? factSheet.key_features : [factSheet.key_features];
-                 keyFeatures.forEach(feature => {
-                     if (!textKeywords.some(kw => feature.toLowerCase().includes(kw) || kw.includes(feature.toLowerCase()))) {
-                         missingFeatures.push(feature);
-                     }
-                 });
+                const keyFeatures = Array.isArray(factSheet.key_features) ? factSheet.key_features : [factSheet.key_features];
+                keyFeatures.forEach(feature => {
+                    if (!textKeywords.some(kw => feature.toLowerCase().includes(kw) || kw.includes(feature.toLowerCase()))) {
+                        missingFeatures.push(feature);
+                    }
+                });
             }
             if (missingFeatures.length > 0) {
                 sendLog('NLP Engine', `Warning: Blog might be missing strict mention of: ${missingFeatures.join(', ')}`, 'var(--warning)', 4);
             }
 
             sendLog('Agent 3', 'Checking Hallucinations vs Fact-Sheet...', 'var(--success)', 5);
-            
+
             const agent3SystemPrompt = `You are "Editor-in-Chief". Review the generated content against the Fact Sheet.
 Rules:
 - Detect Hallucinations: If any name, company, metric, or event is mentioned that is NOT explicitly isolated in the Fact Sheet fields, it is a hallucination.
@@ -210,7 +211,7 @@ ${JSON.stringify(content, null, 2)}
 Did the Copywriter invent any facts, numbers, or names? If yes, status MUST be rejected.`;
 
             const review = await callLLM(agent3SystemPrompt, agent3UserPrompt);
-            
+
             res.write(`data: ${JSON.stringify({ type: 'log', log: { agent: 'Agent 3', msg: `Confidence Score: ${review.confidence_score}`, color: 'var(--success)', step: 5 } })}\n\n`);
 
             if (review.status === 'rejected') {
