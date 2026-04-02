@@ -291,7 +291,13 @@ function AgentRoomPage() {
                                     setFactSheet({
                                         audience: data.data.target_audience || "General",
                                         valueProp: data.data.value_proposition || "Value prop missing",
-                                        features: featuresList
+                                        features: featuresList,
+                                        tone: data.data.tone || "Neutral",
+                                        entities: Array.isArray(data.data.entities) ? data.data.entities : [],
+                                        metrics: Array.isArray(data.data.metrics) ? data.data.metrics : [],
+                                        technical: Array.isArray(data.data.technical_details) ? data.data.technical_details : [],
+                                        ambiguities: Array.isArray(data.data.ambiguous_points) ? data.data.ambiguous_points : [],
+                                        product: data.data.product || "Unknown"
                                     });
                                 } else if (data.type === 'drafts') {
                                     setOutputs({
@@ -455,14 +461,24 @@ function FinalReviewPage() {
                 </h3>
 
                 <div className="source-truth">
-                    <p><strong>Target Audience:</strong><br />{factSheet.audience}</p>
+                    <p><strong>Product/Topic:</strong> {factSheet.product}</p>
+                    <p><strong>Target Audience:</strong> {factSheet.audience}</p>
+                    <p><strong>Detected Tone:</strong> <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{factSheet.tone}</span></p>
                     <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
                     <p><strong>Value Proposition:</strong><br />{factSheet.valueProp}</p>
                     <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                    <p><strong>Core Features:</strong></p>
-                    <ul style={{ paddingLeft: '20px', marginTop: '4px' }}>
-                        {factSheet.features.map((f, i) => <li key={i}>{f}</li>)}
+                    <p><strong>Core Features / Entities:</strong></p>
+                    <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                        {[...factSheet.features, ...factSheet.entities, ...factSheet.technical].filter(Boolean).slice(0, 6).map((f, i) => <li key={i}>{f}</li>)}
                     </ul>
+                    {factSheet.metrics && factSheet.metrics.length > 0 && (
+                        <>
+                            <p style={{ marginTop: '8px' }}><strong>Strict Metrics:</strong></p>
+                            <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                                {factSheet.metrics.slice(0, 3).map((f, i) => <li key={i}>{f}</li>)}
+                            </ul>
+                        </>
+                    )}
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>

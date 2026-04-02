@@ -84,13 +84,12 @@ Rules:
 - Do NOT generate marketing content
 - Only extract facts from the input
 - DO NOT guess or infer missing context (like names, brands, or events)
-- If something is unclear, add it to "ambiguous_points"
+- Identify tone based on context (e.g. Technical, Marketing, Educational)
 - Be concise and accurate
 - Output ONLY valid JSON`;
 
         const agent1UserPrompt = `Analyze the following content and extract structured information:
 
-INPUT:
 INPUT:
 """
 ${cleanText}
@@ -102,12 +101,16 @@ Extract:
 - key_features (list of strings)
 - technical_details (list of strings)
 - value_proposition (string)
-- tone (string)
+- constraints (list of strings)
+- metrics (list of strings)
+- entities (list of strings)
+- events (list of strings)
+- tone (string, adapt personality to context)
 - ambiguous_points (list of strings)
 
 Return pure JSON matching these exact keys.`;
 
-        const factSheet = await callLLM(agent1SystemPrompt, agent1UserPrompt, true);
+        const factSheet = await callLLM(agent1SystemPrompt, agent1UserPrompt);
         sendLog('Agent 1', `Found core value proposition: ${factSheet.value_proposition}`, 'var(--primary)', 1);
         
         if (factSheet.ambiguous_points && factSheet.ambiguous_points.length > 0) {
@@ -115,124 +118,115 @@ Return pure JSON matching these exact keys.`;
         }
         
         res.write(`data: ${JSON.stringify({ type: 'factSheet', data: factSheet })}\n\n`);
-        
         sendLog('System', 'Fact-Sheet completed. Passing to Creative Copywriter.', '', 3);
 
-        // --- STEP 3: Agent 2 (Creative Copywriter) — Split into 2 calls to avoid token limits ---
-        sendLog('Agent 2', 'Drafting Core Content (Blog, Social, Email, LinkedIn)...', 'var(--warning)', 3);
+        let content = {};
+        let approved = false;
+        let editorFeedback = "";
+        let maxAttempts = 2; // Allow 1 regeneration if rejected
 
-        const agent2SystemPrompt = `You are a creative AI agent called "Copywriter".
-Your job is to generate high-quality marketing content from a structured fact sheet.
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            if (attempt > 1) {
+                sendLog('Agent 2', `REGENERATING Drafts (Attempt ${attempt}). Fixing Editor Issues...`, 'var(--warning)', 3);
+            } else {
+                sendLog('Agent 2', 'Drafting Core Content... Adapting tone to: ' + factSheet.tone, 'var(--warning)', 3);
+            }
+
+            const agent2SystemPrompt = `You are a creative AI agent called "Copywriter".
+Your job is to generate high-quality, targeted marketing content from a structured fact sheet.
 
 Rules:
-- DO NOT invent new features, names, or events
-- STRICTLY follow the fact sheet
-- If information is not in fact sheet -> DO NOT include it
-- Maintain consistency across all outputs
-- Highlight the value proposition clearly
-- EVERY output must start with a Hook: a surprising fact, bold question, or striking number
+- ❌ NO NEW FACTS: DO NOT invent features, numbers, entity names, or events. If it isn't in the fact sheet, omit it entirely!
+- ❌ NO ASSUMPTIONS: Do not guess context that is not provided.
+- Adapt your personality to the requested "tone" in the fact sheet (e.g. Analytical if Technical, Persuasive if Marketing).
 - Output ONLY valid JSON.`;
 
-        const agent2PromptA = `Using the following fact sheet, generate:
+            const agent2PromptA = `Using the following fact sheet, generate content.
+${editorFeedback ? `\nCRITICAL FIXES NEEDED FROM PREVIOUS ATTEMPT:\n${editorFeedback}\n` : ""}
 
 FACT SHEET:
 ${JSON.stringify(factSheet, null, 2)}
 
 Generate exactly these 4 keys:
-1. "blog" — 400 words, markdown format, starts with a hook
-2. "social" — 5 tweets thread, hook on post 1, storytelling arc
-3. "email" — 2-4 line teaser, click-focused, starts with hook
-4. "linkedin" — 100 words, professional + storytelling, starts with hook, uses line breaks
+1. "blog" — 400 words, markdown format. Structure: Hook/Problem -> Solution -> Technical Analysis -> Conclusion.
+2. "social" — 5 Twitter/X posts thread. Hook on post 1, clean storytelling arc, no random stats.
+3. "email" — 2-4 line teaser, click-focused, hook + curiosity.
+4. "linkedin" — 100 words, storyteller tone + insight. Line breaks for readability.
 
 Return pure JSON with EXACTLY these 4 keys.`;
 
-        const agent2PromptB = `Using the following fact sheet, generate:
+            const agent2PromptB = `Using the following fact sheet, generate content.
+${editorFeedback ? `\nCRITICAL FIXES NEEDED FROM PREVIOUS ATTEMPT:\n${editorFeedback}\n` : ""}
 
 FACT SHEET:
 ${JSON.stringify(factSheet, null, 2)}
 
-Generate exactly these 4 keys:
-1. "instagram" — array of exactly 5 short strings, each is a slide caption (visual-friendly, emoji ok)
-2. "newsletter" — 150 words, structured: Subject line / Body paragraphs / CTA
-3. "flashcards" — array of exactly 5 objects each with "q" and "a" string keys
-4. "insights" — array of exactly 5 short bullet strings (key takeaways, no bullet symbols)
+Generate exactly these 3 keys:
+1. "instagram" — array of exactly 5 strings (visual captions, engaging hook, emoji ok).
+2. "flashcards" — array of exactly 5 objects each with "q" and "a" string keys.
+3. "insights" — array of exactly 5 short bullet strings (key takeaways).
 
-Return pure JSON with EXACTLY these 4 keys.`;
+Return pure JSON with EXACTLY these 3 keys.`;
 
-        const [contentA, contentB] = await Promise.all([
-            callLLM(agent2SystemPrompt, agent2PromptA, true),
-            callLLM(agent2SystemPrompt, agent2PromptB, true)
-        ]);
+            const [contentA, contentB] = await Promise.all([
+                callLLM(agent2SystemPrompt, agent2PromptA),
+                callLLM(agent2SystemPrompt, agent2PromptB)
+            ]);
 
-        sendLog('Agent 2', 'Extended Content generated (Instagram, Newsletter, Flashcards, Insights)...', 'var(--warning)', 3);
+            content = { ...contentA, ...contentB, _tone: factSheet.tone };
+            res.write(`data: ${JSON.stringify({ type: 'drafts', data: content })}\n\n`);
 
-        const content = { ...contentA, ...contentB };
-        res.write(`data: ${JSON.stringify({ type: 'drafts', data: content })}\n\n`);
-        
-        // --- STEP 4: NLP Check ---
-        sendLog('System', 'Executing local NLP Keyword Consistency check...', '', 4);
-        const blogDoc = nlp(content.blog || content.blog_post || "");
-        const textKeywords = blogDoc.topics().out('array').map(w => w.toLowerCase());
-        
-        let missingFeatures = [];
-        if (factSheet.key_features) {
-             const keyFeatures = Array.isArray(factSheet.key_features) ? factSheet.key_features : [factSheet.key_features];
-             keyFeatures.forEach(feature => {
-                 if (!textKeywords.some(kw => feature.toLowerCase().includes(kw) || kw.includes(feature.toLowerCase()))) {
-                     missingFeatures.push(feature);
-                 }
-             });
-        }
-        
-        if (missingFeatures.length > 0) {
-            sendLog('NLP Engine', `Warning: Blog might be missing strict mention of: ${missingFeatures.join(', ')}`, 'var(--warning)', 4);
-        } else {
-            sendLog('NLP Engine', 'NLP consistency check passed! Core features present.', 'var(--success)', 4);
-        }
+            // --- STEP 4 & 5: NLP / Validation ---
+            sendLog('System', 'Executing local NLP Keyword Consistency check...', '', 4);
+            const blogDoc = nlp(content.blog || content.blog_post || "");
+            const textKeywords = blogDoc.topics().out('array').map(w => w.toLowerCase());
+            
+            let missingFeatures = [];
+            if (factSheet.key_features) {
+                 const keyFeatures = Array.isArray(factSheet.key_features) ? factSheet.key_features : [factSheet.key_features];
+                 keyFeatures.forEach(feature => {
+                     if (!textKeywords.some(kw => feature.toLowerCase().includes(kw) || kw.includes(feature.toLowerCase()))) {
+                         missingFeatures.push(feature);
+                     }
+                 });
+            }
+            if (missingFeatures.length > 0) {
+                sendLog('NLP Engine', `Warning: Blog might be missing strict mention of: ${missingFeatures.join(', ')}`, 'var(--warning)', 4);
+            }
 
-        // --- STEP 5: Agent 3 (Editor-in-Chief Validation) ---
-        sendLog('Agent 3', 'Checking Hallucinations vs Fact-Sheet...', 'var(--success)', 5);
-        
-        const agent3SystemPrompt = `You are an AI agent called "Editor-in-Chief".
-Your job is to review and validate generated content.
-
+            sendLog('Agent 3', 'Checking Hallucinations vs Fact-Sheet...', 'var(--success)', 5);
+            
+            const agent3SystemPrompt = `You are "Editor-in-Chief". Review the generated content against the Fact Sheet.
 Rules:
-- Compare content strictly with the fact sheet
-- Detect hallucinations (fake features, wrong claims, invented names like "DeepSeek" or "Jeffrey Emanuel")
-- If any external names, entities, or events are hallucinated that are NOT in the fact sheet, immediately return "status": "rejected"
-- List specific hallucination issues (e.g., "DeepSeek not in fact sheet")
-- Ensure tone is appropriate
-- Suggest corrections if needed
-- Do NOT rewrite full content, only give feedback
-- Output ONLY valid JSON`;
+- Detect Hallucinations: If any name, company, metric, or event is mentioned that is NOT explicitly isolated in the Fact Sheet fields, it is a hallucination.
+- Output ONLY valid JSON with keys: "status" ("approved" or "rejected"), "issues" (array of exact string errors), "corrections" (array), "confidence_score" (float 0.0-1.0)`;
 
-        const agent3UserPrompt = `FACT SHEET:
+            const agent3UserPrompt = `FACT SHEET:
 ${JSON.stringify(factSheet, null, 2)}
 
 GENERATED CONTENT:
 ${JSON.stringify(content, null, 2)}
 
-Tasks:
-1. Hallucination Check: Identify any information not present in the fact sheet
-2. Quality Feedback: Suggest improvements
+Did the Copywriter invent any facts, numbers, or names? If yes, status MUST be rejected.`;
 
-Return pure JSON with keys:
-- "status": ("approved" or "rejected")
-- "issues": (list of concise strings, e.g., ["Entity X not in fact sheet"])
-- "corrections": (list of concise strings)
-- "confidence_score": (float between 0.0 and 1.0)`;
+            const review = await callLLM(agent3SystemPrompt, agent3UserPrompt);
+            
+            res.write(`data: ${JSON.stringify({ type: 'log', log: { agent: 'Agent 3', msg: `Confidence Score: ${review.confidence_score}`, color: 'var(--success)', step: 5 } })}\n\n`);
 
-        const review = await callLLM(agent3SystemPrompt, agent3UserPrompt, true);
-        
-        if (review.status === 'rejected') {
-            sendLog('Agent 3', `REJECTED (Confidence: ${review.confidence_score}): ${review.issues[0]}`, 'var(--accent)', 5);
-            sendLog('System', 'Correction requested (simulated). Proceeding manually.', '', 6);
-        } else {
-            sendLog('Agent 3', `APPROVED all drafts. Quality metrics met. Confidence: ${review.confidence_score}`, 'var(--success)', 5);
+            if (review.status === 'rejected') {
+                sendLog('Agent 3', `REJECTED: ${review.issues[0]}`, 'var(--accent)', 5);
+                editorFeedback = review.instructions || review.corrections?.join('. ') || review.issues?.join('. ');
+                if (attempt === maxAttempts) {
+                    sendLog('System', 'Max attempts reached. Returning rejected draft.', '', 6);
+                }
+            } else {
+                sendLog('Agent 3', `APPROVED. Content is fact-aligned and high-quality!`, 'var(--success)', 5);
+                approved = true;
+                break;
+            }
         }
 
         sendLog('System', 'Campaign generation workflow complete.', '', 6);
-        
         res.write(`data: ${JSON.stringify({ type: 'complete' })}\n\n`);
 
     } catch (err) {
