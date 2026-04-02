@@ -393,7 +393,7 @@ a {
 .agent-room-layout {
     display: flex;
     gap: 32px;
-    align-items: stretch;
+    align-items: center;
 }
 
 .agent-col {

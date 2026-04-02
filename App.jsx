@@ -420,7 +420,7 @@ function AgentRoomPage() {
                 </div>
 
                 <div className="feed-col">
-                    <div className="chat-feed auto-scroll" style={{ height: '100%', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="chat-feed auto-scroll" style={{ height: '550px', display: 'flex', flexDirection: 'column' }}>
                         {logs.map(log => (
                             <div key={log.id} className={`chat-message ${log.type}`} style={{ color: log.color || 'inherit' }}>
                                 {log.type === 'NLP Engine' && <Zap size={18} />}
