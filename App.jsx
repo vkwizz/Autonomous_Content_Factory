@@ -184,488 +184,488 @@ function CampaignStartPage() {
         if (file) {
             loadFileText(file);
         } else {
-            if (file) loadFileText(file);
-            else {
-                const text = e.dataTransfer.getData('text');
-                if (text) setSourceData(text.slice(0, MAX_CHARS));
-            }
-        };
-        const handleFileSelect = (e) => loadFileText(e.target.files?.[0]);
-        const handleSampleLoad = () => {
-            setSourceData("Acme Corp is launching the TerraPhone X, a $799 smartphone aimed at Gen Z creators. Core features include a 3-day battery life, 4K holographic display, and AI-editing suite. Tone should be energetic and persuasive. The goal is to drive pre-orders.");
-            navigate('/agent-room');
-        };
+            const text = e.dataTransfer.getData('text');
+            if (text) setSourceData(text.slice(0, MAX_CHARS));
+        }
+    };
 
-        return (
-            <div className="glass-panel fade-in" style={{ padding: '60px 40px', maxWidth: '800px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <h1 style={{ fontSize: '36px', marginBottom: '16px' }} className="title-gradient">Autonomous Content Factory</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '16px', lineHeight: '1.6', maxWidth: '600px', margin: '0 auto' }}>
-                        Upload an unstructured fact sheet, technical spec, or transcript. Our multi-agent system will extract the core facts and launch a 360° marketing campaign.
-                    </p>
-                </div>
+    const handleFilePick = (e) => {
+        loadFileText(e.target.files?.[0]);
+    };
 
-                <div
-                    className={`upload-zone fade-in ${isDragging ? 'drag-active' : ''}`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        style={{ display: 'none' }}
-                        accept=".txt,.md"
-                        onChange={handleFileSelect}
-                    />
-                    <Upload className="upload-icon" />
-                    <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>Drag & Drop your source file</h3>
-                    <p style={{ color: 'var(--text-muted)' }}>We accept .txt or .md files up to 50KB</p>
+    return (
+        <div className="glass-panel" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+            <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>Start a New Campaign</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+                Upload your raw source material—a technical document, product feature list, or a transcript. Our agents will take it from here.
+            </p>
 
-                    <div style={{ marginTop: '24px', position: 'relative', zIndex: 2 }} onClick={(e) => e.stopPropagation()}>
-                        <button className="btn btn-secondary" onClick={handleSampleLoad} style={{ fontSize: '13px', padding: '8px 16px' }}>
-                            <Zap size={14} color="var(--warning)" /> Try Example Input
-                        </button>
-                    </div>
-                </div>
-
-                <div style={{ marginTop: '24px' }}>
-                    <textarea
-                        className="input-field"
-                        rows="8"
-                        placeholder="Or paste your text here..."
-                        value={sourceData}
-                        onChange={(e) => setSourceData(e.target.value)}
-                        style={{ resize: 'vertical' }}
-                    ></textarea>
-                </div>
-
-                <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-primary" onClick={() => sourceData.trim().length > 10 ? navigate('/agent-room') : alert("Please provide source text.")} style={{ padding: '12px 32px', fontSize: '16px' }}>
-                        Initialize Agents <ChevronRight size={20} />
-                    </button>
-                </div>
+            <input
+                ref={fileInputRef}
+                id="file-input-hidden"
+                type="file"
+                accept=".txt,.md"
+                style={{ display: 'none' }}
+                onChange={handleFilePick}
+            />
+            <div
+                className={`upload-zone ${isDragging ? 'drag-active' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleFileDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{ cursor: 'pointer' }}
+            >
+                <Upload className="upload-icon" />
+                <h3 style={{ marginBottom: '8px' }}>Drag & Drop or Click to Upload</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>Supports .txt, .md files — or paste text below</p>
             </div>
-        );
-    }
 
-    function AgentRoomPage() {
-        const { sourceData, setFactSheet, setOutputs } = React.useContext(AppContext);
-        const navigate = useNavigate();
-        const [currentStep, setCurrentStep] = useState(0);
-        const [logs, setLogs] = useState([]);
+            <div style={{ marginTop: '24px' }}>
+                <textarea
+                    className="input-field"
+                    rows="8"
+                    placeholder="Paste latest feature specs, transcripts, or notes..."
+                    value={sourceData}
+                    onChange={(e) => setSourceData(e.target.value)}
+                    style={{ resize: 'vertical' }}
+                ></textarea>
+            </div>
 
-        useEffect(() => {
-            const addLog = (msg, type = 'system', color = '') => {
-                setLogs(prev => [...prev, { id: Date.now() + Math.random(), msg, type, color }]);
-            };
+            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-primary" onClick={handleStart} style={{ padding: '12px 32px', fontSize: '16px' }}>
+                    Initialize Agents <ChevronRight size={20} />
+                </button>
+            </div>
+        </div>
+    );
+}
 
-            setCurrentStep(1);
-            addLog("Initializing AI Campaign Assembly...", "system");
+function AgentRoomPage() {
+    const { sourceData, setFactSheet, setOutputs } = React.useContext(AppContext);
+    const navigate = useNavigate();
+    const [currentStep, setCurrentStep] = useState(0);
+    const [logs, setLogs] = useState([]);
 
-            const fetchData = async () => {
-                try {
-                    const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/generate';
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ inputText: sourceData || "Simulated test content" })
-                    });
+    useEffect(() => {
+        const addLog = (msg, type = 'system', color = '') => {
+            setLogs(prev => [...prev, { id: Date.now() + Math.random(), msg, type, color }]);
+        };
 
-                    if (!response.ok) throw new Error("Server response not ok");
+        setCurrentStep(1);
+        addLog("Initializing AI Campaign Assembly...", "system");
 
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
+        const fetchData = async () => {
+            try {
+                const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/generate';
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inputText: sourceData || "Simulated test content" })
+                });
 
-                    let buffer = '';
-                    while (true) {
-                        const { value, done } = await reader.read();
-                        if (done) break;
+                if (!response.ok) throw new Error("Server response not ok");
 
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop();
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
 
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const data = JSON.parse(line.substring(6));
-                                    if (data.type === 'log') {
-                                        addLog(data.log.msg, data.log.agent, data.log.color);
-                                        if (data.log.step) setCurrentStep(data.log.step);
-                                    } else if (data.type === 'factSheet') {
-                                        let featuresList = data.data.key_features || [];
-                                        if (!Array.isArray(featuresList)) featuresList = [data.data.key_features];
-                                        setFactSheet({
-                                            audience: data.data.target_audience || "General",
-                                            valueProp: data.data.value_proposition || "Value prop missing",
-                                            features: featuresList,
-                                            tone: data.data.tone || "Neutral",
-                                            entities: Array.isArray(data.data.entities) ? data.data.entities : [],
-                                            metrics: Array.isArray(data.data.metrics) ? data.data.metrics : [],
-                                            technical: Array.isArray(data.data.technical_details) ? data.data.technical_details : [],
-                                            ambiguities: Array.isArray(data.data.ambiguous_points) ? data.data.ambiguous_points : [],
-                                            product: data.data.product || "Unknown"
-                                        });
-                                    } else if (data.type === 'drafts') {
-                                        setOutputs({
-                                            blog: data.data.blog || data.data.blog_post || "",
-                                            social: Array.isArray(data.data.social_thread) ? data.data.social_thread.join('\n\n') : (data.data.social_thread || data.data.social || ""),
-                                            email: data.data.email || data.data.email_teaser || "",
-                                            linkedin: data.data.linkedin || "",
-                                            instagram: Array.isArray(data.data.instagram) ? data.data.instagram : [],
-                                            flashcards: Array.isArray(data.data.flashcards) ? data.data.flashcards : [],
-                                            insights: Array.isArray(data.data.insights) ? data.data.insights : []
-                                        });
-                                    } else if (data.type === 'complete') {
-                                        setCurrentStep(6);
-                                    } else if (data.type === 'error') {
-                                        addLog("Error: " + data.error, 'system', 'var(--accent)');
-                                        setCurrentStep(6);
-                                    }
-                                } catch (e) {
-                                    console.error("Event parse error", e, line);
+                let buffer = '';
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // keep remainder
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.substring(6));
+                                if (data.type === 'log') {
+                                    addLog(data.log.msg, data.log.agent, data.log.color);
+                                    if (data.log.step) setCurrentStep(data.log.step);
+                                } else if (data.type === 'factSheet') {
+                                    let featuresList = data.data.key_features || [];
+                                    if (!Array.isArray(featuresList)) featuresList = [data.data.key_features];
+                                    setFactSheet({
+                                        audience: data.data.target_audience || "General",
+                                        valueProp: data.data.value_proposition || "Value prop missing",
+                                        features: featuresList,
+                                        tone: data.data.tone || "Neutral",
+                                        entities: Array.isArray(data.data.entities) ? data.data.entities : [],
+                                        metrics: Array.isArray(data.data.metrics) ? data.data.metrics : [],
+                                        technical: Array.isArray(data.data.technical_details) ? data.data.technical_details : [],
+                                        ambiguities: Array.isArray(data.data.ambiguous_points) ? data.data.ambiguous_points : [],
+                                        product: data.data.product || "Unknown"
+                                    });
+                                } else if (data.type === 'drafts') {
+                                    setOutputs({
+                                        blog: data.data.blog || data.data.blog_post || "",
+                                        social: Array.isArray(data.data.social_thread) ? data.data.social_thread.join('\n\n') : (data.data.social_thread || data.data.social || ""),
+                                        email: data.data.email || data.data.email_teaser || "",
+                                        linkedin: data.data.linkedin || "",
+                                        instagram: Array.isArray(data.data.instagram) ? data.data.instagram : [],
+                                        flashcards: Array.isArray(data.data.flashcards) ? data.data.flashcards : [],
+                                        insights: Array.isArray(data.data.insights) ? data.data.insights : []
+                                    });
+                                } else if (data.type === 'complete') {
+                                    setCurrentStep(6);
+                                } else if (data.type === 'error') {
+                                    addLog("Error: " + data.error, 'system', 'var(--accent)');
+                                    setCurrentStep(6);
                                 }
+                            } catch (e) {
+                                console.error("Event parse error", e, line);
                             }
                         }
                     }
-                } catch (err) {
-                    console.error(err);
-                    addLog('Failed to connect to AI backend. Make sure to run node server.js', 'system', 'var(--accent)');
-                    setCurrentStep(6);
                 }
-            };
-
-            if (sourceData) {
-                fetchData();
-            } else {
-                addLog("No source data found. Go back to upload.", "system", "var(--accent)");
+            } catch (err) {
+                console.error(err);
+                addLog('Failed to connect to AI backend. Make sure to run node server.js', 'system', 'var(--accent)');
                 setCurrentStep(6);
             }
-        }, []);
-
-        return (
-            <div className="glass-panel" style={{ padding: '32px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>The Agent Room</h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Watch the Autonomous Factory collaborate in real-time.</p>
-                </div>
-
-                <div className="agent-grid">
-                    <div className={`agent-card glass-panel fade-in ${currentStep === 1 ? 'active' : ''}`} style={{ transitionDelay: '0.1s' }}>
-                        <div className="agent-avatar"><Zap /></div>
-                        <h4 className="text-gradient-primary">NLP Preprocessor</h4>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Text Cleanup</p>
-                        <div className="agent-status" style={{ opacity: currentStep === 1 ? 1 : 0.4 }}>
-                            {currentStep === 1 ? <span className="typing-dot">Parsing</span> : 'Standby'}
-                        </div>
-                    </div>
-
-                    <div className={`agent-card glass-panel fade-in ${currentStep === 2 ? 'active' : ''}`} style={{ transitionDelay: '0.2s' }}>
-                        <div className="agent-avatar"><BrainCircuit /></div>
-                        <h4 className="text-gradient-primary">Lead Research</h4>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Fact Extractor</p>
-                        <div className="agent-status" style={{ opacity: currentStep === 2 ? 1 : 0.4 }}>
-                            {currentStep === 2 ? <span className="typing-dot">Extracting</span> : 'Standby'}
-                        </div>
-                    </div>
-
-                    <div className={`agent-card glass-panel fade-in ${(currentStep === 3 || currentStep === 4) ? 'active' : ''}`} style={{ transitionDelay: '0.3s' }}>
-                        <div className="agent-avatar"><PenTool /></div>
-                        <h4 style={{ color: 'var(--warning)' }}>Copywriter</h4>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>The Voice</p>
-                        <div className="agent-status" style={{ opacity: (currentStep === 3 || currentStep === 4) ? 1 : 0.4 }}>
-                            {(currentStep === 3 || currentStep === 4) ? <span className="typing-dot">Generating</span> : 'Standby'}
-                        </div>
-                    </div>
-
-                    <div className={`agent-card glass-panel fade-in ${currentStep === 4 ? 'active' : ''}`} style={{ transitionDelay: '0.4s' }}>
-                        <div className="agent-avatar"><Search /></div>
-                        <h4 style={{ color: 'var(--warning)' }}>NLP Validator</h4>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Keyword Matcher</p>
-                        <div className="agent-status" style={{ opacity: currentStep === 4 ? 1 : 0.4 }}>
-                            {currentStep === 4 ? <span className="typing-dot">Scanning</span> : 'Standby'}
-                        </div>
-                    </div>
-
-                    <div className={`agent-card glass-panel fade-in ${currentStep === 5 ? 'active' : ''}`} style={{ transitionDelay: '0.5s' }}>
-                        <div className="agent-avatar"><ShieldCheck color="var(--success)" /></div>
-                        <h4 style={{ color: 'var(--success)' }}>Editor-in-Chief</h4>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Gatekeeper</p>
-                        <div className="agent-status" style={{ opacity: currentStep === 5 ? 1 : 0.4 }}>
-                            {currentStep === 5 ? <span className="typing-dot">Reviewing</span> : 'Standby'}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="chat-feed auto-scroll">
-                    {logs.map(log => (
-                        <div key={log.id} className={`chat-message ${log.type}`} style={{ color: log.color || 'inherit' }}>
-                            {log.type === 'NLP Engine' && <Zap size={18} />}
-                            {log.type === 'Agent 1' && <BrainCircuit size={18} />}
-                            {log.type === 'Agent 2' && <PenTool size={18} />}
-                            {log.type === 'Agent 3' && <ShieldCheck size={18} />}
-                            <span style={{ fontSize: '14px', lineHeight: '1.4' }}>{log.msg}</span>
-                        </div>
-                    ))}
-                    {currentStep === 6 && (
-                        <div style={{ textAlign: 'center', marginTop: '24px' }} className="fade-in">
-                            <button className="btn btn-primary" onClick={() => navigate('/review')}>
-                                View Final Campaign Layout <ChevronRight size={18} />
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div >
-        );
-    }
-
-    function FinalReviewPage() {
-        const { factSheet, outputs, saveCampaign } = React.useContext(AppContext);
-        const [activeTab, setActiveTab] = useState('blog');
-        const [devicePreview, setDevicePreview] = useState('desktop');
-        const navigate = useNavigate();
-
-        const handleCopyAll = () => {
-            const flashcardsText = (outputs.flashcards || []).map((fc, i) => `Q${i + 1}: ${fc.q}\nA: ${fc.a}`).join('\n\n');
-            const insightsText = (outputs.insights || []).map(ins => `• ${ins}`).join('\n');
-            const textToCopy = `FACT SHEET:\nTarget Audience: ${factSheet?.audience}\nValue Proposition: ${factSheet?.valueProp}\nCore Features: ${factSheet?.features?.join(', ')}\n\nBLOG POST:\n${outputs.blog}\n\nSOCIAL THREAD:\n${outputs.social}\n\nEMAIL TEASER:\n${outputs.email}\n\nLINKEDIN POST:\n${outputs.linkedin}\n\nFLASHCARDS:\n${flashcardsText}\n\nKEY INSIGHTS:\n${insightsText}`;
-            navigator.clipboard.writeText(textToCopy);
-            alert('Copied entire campaign kit to clipboard!');
         };
 
-        const handleExportZip = async () => {
-            const zip = new JSZip();
-            zip.file("fact-sheet.txt", `Target Audience: ${factSheet.audience}\nValue Proposition: ${factSheet.valueProp}\nCore Features: ${factSheet.features.join(', ')}`);
-            zip.file("blog-post.md", outputs.blog);
-            zip.file("social-thread.txt", outputs.social);
-            zip.file("email-teaser.html", outputs.email);
-            zip.file("linkedin-post.txt", outputs.linkedin);
-            zip.file("instagram-captions.txt", (outputs.instagram || []).map((s, i) => `Slide ${i + 1}: ${s}`).join('\n'));
-            zip.file("flashcards.txt", (outputs.flashcards || []).map((fc, i) => `Q${i + 1}: ${fc.q}\nA: ${fc.a}`).join('\n\n'));
-            zip.file("key-insights.txt", (outputs.insights || []).map(ins => `• ${ins}`).join('\n'));
-            const content = await zip.generateAsync({ type: "blob" });
-            saveAs(content, "cymonic-campaign-kit.zip");
-        };
-
-        const handleRegenerate = () => {
-            navigate('/agent-room');
-        };
-
-        if (!factSheet) {
-            return (
-                <div style={{ textAlign: 'center', marginTop: '50px' }}>
-                    <h2>No Campaign Data</h2>
-                    <a href="/" className="btn btn-primary" style={{ marginTop: '20px' }}>Go Back</a>
-                </div>
-            );
+        if (sourceData) {
+            fetchData();
+        } else {
+            addLog("No source data found. Go back to upload.", "system", "var(--accent)");
+            setCurrentStep(6);
         }
+    }, []); // run on mount only — works for both initial load and Regenerate navigation
 
-        return (
-            <div className="review-dashboard fade-in">
-                <div className="glass-panel sidebar-panel">
-                    <h3 style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px', marginBottom: '8px' }}>
-                        Extracted Fact-Sheet
-                    </h3>
+    return (
+        <div className="glass-panel" style={{ padding: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>The Agent Room</h2>
+                <p style={{ color: 'var(--text-muted)' }}>Watch the Autonomous Factory collaborate in real-time.</p>
+            </div>
 
-                    <div className="source-truth">
-                        <p><strong>Product/Topic:</strong> {factSheet.product}</p>
-                        <p><strong>Target Audience:</strong> {factSheet.audience}</p>
-                        <p><strong>Detected Tone:</strong> <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{factSheet.tone}</span></p>
-                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                        <p><strong>Value Proposition:</strong><br />{factSheet.valueProp}</p>
-                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                        <p><strong>Core Features / Entities:</strong></p>
-                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                            {[...factSheet.features, ...factSheet.entities, ...factSheet.technical].filter(Boolean).slice(0, 6).map((f, i) => <li key={i}>{f}</li>)}
-                        </ul>
-                        {factSheet.metrics && factSheet.metrics.length > 0 && (
-                            <>
-                                <p style={{ marginTop: '8px' }}><strong>Strict Metrics:</strong></p>
-                                <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                                    {factSheet.metrics.slice(0, 3).map((f, i) => <li key={i}>{f}</li>)}
-                                </ul>
-                            </>
-                        )}
-                    </div>
-
-                    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleCopyAll}>
-                            <Copy size={16} /> Copy All to Clipboard
-                        </button>
-                        <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleExportZip}>
-                            <Download size={16} /> Export Kit (.zip)
-                        </button>
+            <div className="agent-grid">
+                <div className={`agent-card glass-panel ${currentStep === 1 ? 'active' : ''}`} style={{ color: 'var(--primary)' }}>
+                    <div className="agent-avatar"><Zap /></div>
+                    <h3>NLP Preprocessor</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Text Cleanup</p>
+                    <div className="agent-status" style={{ opacity: currentStep === 1 ? 1 : 0.3 }}>
+                        {currentStep === 1 ? 'Parsing...' : 'Standby'}
                     </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="content-tabs" style={{ flexWrap: 'wrap', gap: '4px' }}>
-                            <button className={`tab-btn ${activeTab === 'blog' ? 'active' : ''}`} onClick={() => setActiveTab('blog')}>
-                                <FileText size={15} /> Blog
-                            </button>
-                            <button className={`tab-btn ${activeTab === 'social' ? 'active' : ''}`} onClick={() => setActiveTab('social')}>
-                                <MessageSquare size={15} /> Twitter
-                            </button>
-                            <button className={`tab-btn ${activeTab === 'email' ? 'active' : ''}`} onClick={() => setActiveTab('email')}>
-                                <Mail size={15} /> Email
-                            </button>
-                            <button className={`tab-btn ${activeTab === 'linkedin' ? 'active' : ''}`} onClick={() => setActiveTab('linkedin')}>
-                                <Briefcase size={15} /> LinkedIn
-                            </button>
-                            <button className={`tab-btn ${activeTab === 'instagram' ? 'active' : ''}`} onClick={() => setActiveTab('instagram')}>
-                                <Camera size={15} /> Instagram
-                            </button>
-                            <button className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`} onClick={() => setActiveTab('flashcards')}>
-                                <BookOpen size={15} /> Flashcards
-                            </button>
-                            <button className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
-                                <Lightbulb size={15} /> Insights
-                            </button>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.04)', padding: '4px', borderRadius: '8px' }}>
-                            <button
-                                className={`btn ${devicePreview === 'desktop' ? '' : 'btn-secondary'}`}
-                                style={{ background: devicePreview === 'desktop' ? 'var(--panel-bg)' : 'transparent', border: 'none' }}
-                                onClick={() => setDevicePreview('desktop')}
-                            >
-                                <Monitor size={18} />
-                            </button>
-                            <button
-                                className={`btn ${devicePreview === 'mobile' ? '' : 'btn-secondary'}`}
-                                style={{ background: devicePreview === 'mobile' ? 'var(--panel-bg)' : 'transparent', border: 'none' }}
-                                onClick={() => setDevicePreview('mobile')}
-                            >
-                                <Smartphone size={18} />
-                            </button>
-                        </div>
+                <div className={`agent-card glass-panel ${currentStep === 2 ? 'active' : ''}`} style={{ color: 'var(--primary)' }}>
+                    <div className="agent-avatar"><BrainCircuit /></div>
+                    <h3>Lead Research</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Fact Extractor</p>
+                    <div className="agent-status" style={{ opacity: currentStep === 2 ? 1 : 0.3 }}>
+                        {currentStep === 2 ? 'Analyzing...' : 'Standby'}
                     </div>
+                </div>
 
-                    <div className={`editor-view fade-in ${devicePreview === 'mobile' ? 'device-preview-mobile' : ''}`}>
-                        <div className="editor-header">
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }}></div>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }}></div>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }}></div>
-                            </div>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                                {activeTab === 'blog' ? 'blog-post.md' : activeTab === 'social' ? 'thread.txt' : activeTab === 'email' ? 'email-teaser.html' : activeTab === 'linkedin' ? 'linkedin-post.txt' : activeTab === 'instagram' ? 'instagram-captions.txt' : activeTab === 'flashcards' ? 'flashcards.txt' : 'key-insights.txt'}
-                            </span>
-                            <div></div>
-                        </div>
-                        <div className="editor-content">
-                            {activeTab === 'instagram' ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {(outputs.instagram || []).map((slide, i) => (
-                                        <div key={i} style={{ padding: '16px', background: 'linear-gradient(135deg, #667eea22, #764ba222)', border: '1px solid #667eea44', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                            <div style={{ minWidth: '36px', height: '36px', background: 'linear-gradient(135deg, #667eea, #764ba2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px' }}>{i + 1}</div>
-                                            <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>{slide}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : activeTab === 'flashcards' ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    {(outputs.flashcards || []).map((card, i) => (
-                                        <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--panel-border)' }}>
-                                            <div style={{ padding: '12px 16px', background: 'var(--primary)', color: 'white', fontWeight: '600', fontSize: '13px' }}>Q{i + 1}: {card.q}</div>
-                                            <div style={{ padding: '12px 16px', background: '#f8f9ff', fontSize: '14px', lineHeight: '1.6', color: 'var(--text)' }}>→ {card.a}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : activeTab === 'insights' ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    {(outputs.insights || []).map((insight, i) => (
-                                        <div key={i} style={{ padding: '14px 18px', background: '#f0f4ff', borderLeft: '4px solid var(--primary)', borderRadius: '0 8px 8px 0', fontSize: '14px', lineHeight: '1.5' }}>
-                                            <span style={{ marginRight: '8px', color: 'var(--primary)', fontWeight: '700' }}>•</span>{insight}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div contentEditable suppressContentEditableWarning style={{ outline: 'none', whiteSpace: 'pre-wrap' }}>
-                                    {outputs[activeTab]}
-                                </div>
-                            )}
-                        </div>
+                <div className={`agent-card glass-panel ${currentStep === 3 ? 'active' : ''}`} style={{ color: 'var(--warning)' }}>
+                    <div className="agent-avatar"><PenTool /></div>
+                    <h3>Copywriter</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>The Voice</p>
+                    <div className="agent-status" style={{ opacity: currentStep === 3 ? 1 : 0.3 }}>
+                        {currentStep === 3 ? 'Drafting...' : 'Standby'}
                     </div>
+                </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                        <button className="btn btn-secondary" onClick={handleRegenerate}>
-                            <RefreshCcw size={16} /> Regenerate
-                        </button>
-                        <button
-                            className="btn btn-success"
-                            onClick={() => {
-                                const newCampaign = {
-                                    id: Date.now(),
-                                    date: new Date().toISOString(),
-                                    factSheet,
-                                    outputs,
-                                    title: factSheet.valueProp || "New Campaign"
-                                };
-                                saveCampaign(newCampaign);
-                                alert("Campaign saved to history!");
-                            }}
-                        >
-                            <CheckCircle size={16} /> Approve Draft
-                        </button>
+                <div className={`agent-card glass-panel ${currentStep === 4 ? 'active' : ''}`} style={{ color: 'var(--warning)' }}>
+                    <div className="agent-avatar"><Search /></div>
+                    <h3>NLP Validator</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Keyword Matcher</p>
+                    <div className="agent-status" style={{ opacity: currentStep === 4 ? 1 : 0.3 }}>
+                        {currentStep === 4 ? 'Auditing...' : 'Standby'}
+                    </div>
+                </div>
+
+                <div className={`agent-card glass-panel ${currentStep === 5 ? 'active' : ''}`} style={{ color: 'var(--success)' }}>
+                    <div className="agent-avatar"><ShieldCheck /></div>
+                    <h3>Editor-in-Chief</h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Gatekeeper</p>
+                    <div className="agent-status" style={{ opacity: currentStep === 5 ? 1 : 0.3 }}>
+                        {currentStep === 5 ? 'Final Review...' : 'Standby'}
                     </div>
                 </div>
             </div>
-        );
-    }
 
-    function HistoryPage() {
-        const { campaignHistory, setFactSheet, setOutputs } = React.useContext(AppContext);
-        const navigate = useNavigate();
-
-        const handleView = (campaign) => {
-            setFactSheet(campaign.factSheet);
-            setOutputs(campaign.outputs);
-            navigate('/review');
-        };
-
-        return (
-            <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-                <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>Campaign History</h2>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-                    Your past generated campaigns and content assets.
-                </p>
-                {campaignHistory.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>No campaigns saved yet. Generate one and approve it to see it here!</p>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {campaignHistory.map(campaign => (
-                            <div key={campaign.id} className="fade-in" style={{ padding: '24px', border: '1px solid var(--panel-border)', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff' }}>
-                                <div style={{ textAlign: 'left' }}>
-                                    <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>{campaign.title}</h4>
-                                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                                        Generated on {new Date(campaign.date).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <button className="btn btn-secondary" onClick={() => handleView(campaign)}>View Assets</button>
-                            </div>
-                        ))}
+            <div className="chat-feed auto-scroll">
+                {logs.map(log => (
+                    <div key={log.id} className={`chat-message ${log.type}`} style={{ color: log.color || 'inherit' }}>
+                        {log.type === 'NLP Engine' && <Zap size={18} />}
+                        {log.type === 'Agent 1' && <BrainCircuit size={18} />}
+                        {log.type === 'Agent 2' && <PenTool size={18} />}
+                        {log.type === 'Agent 3' && <ShieldCheck size={18} />}
+                        <span style={{ fontSize: '14px', lineHeight: '1.4' }}>{log.msg}</span>
+                    </div>
+                ))}
+                {currentStep === 6 && (
+                    <div style={{ textAlign: 'center', marginTop: '24px' }} className="fade-in">
+                        <button className="btn btn-primary" onClick={() => navigate('/review')}>
+                            View Final Campaign Layout <ChevronRight size={18} />
+                        </button>
                     </div>
                 )}
             </div>
-        );
-    }
+        </div>
+    );
+}
 
-    function AboutPage() {
+function FinalReviewPage() {
+    const { factSheet, outputs, saveCampaign } = React.useContext(AppContext);
+    const [activeTab, setActiveTab] = useState('blog');
+    const [devicePreview, setDevicePreview] = useState('desktop');
+    const navigate = useNavigate();
+
+    const handleCopyAll = () => {
+        const flashcardsText = (outputs.flashcards || []).map((fc, i) => `Q${i + 1}: ${fc.q}\nA: ${fc.a}`).join('\n\n');
+        const insightsText = (outputs.insights || []).map(ins => `• ${ins}`).join('\n');
+        const textToCopy = `FACT SHEET:\nTarget Audience: ${factSheet?.audience}\nValue Proposition: ${factSheet?.valueProp}\nCore Features: ${factSheet?.features?.join(', ')}\n\nBLOG POST:\n${outputs.blog}\n\nSOCIAL THREAD:\n${outputs.social}\n\nEMAIL TEASER:\n${outputs.email}\n\nLINKEDIN POST:\n${outputs.linkedin}\n\nFLASHCARDS:\n${flashcardsText}\n\nKEY INSIGHTS:\n${insightsText}`;
+        navigator.clipboard.writeText(textToCopy);
+        alert('Copied entire campaign kit to clipboard!');
+    };
+
+    const handleExportZip = async () => {
+        const zip = new JSZip();
+        zip.file("fact-sheet.txt", `Target Audience: ${factSheet.audience}\nValue Proposition: ${factSheet.valueProp}\nCore Features: ${factSheet.features.join(', ')}`);
+        zip.file("blog-post.md", outputs.blog);
+        zip.file("social-thread.txt", outputs.social);
+        zip.file("email-teaser.html", outputs.email);
+        zip.file("linkedin-post.txt", outputs.linkedin);
+        zip.file("instagram-captions.txt", (outputs.instagram || []).map((s, i) => `Slide ${i + 1}: ${s}`).join('\n'));
+        zip.file("flashcards.txt", (outputs.flashcards || []).map((fc, i) => `Q${i + 1}: ${fc.q}\nA: ${fc.a}`).join('\n\n'));
+        zip.file("key-insights.txt", (outputs.insights || []).map(ins => `• ${ins}`).join('\n'));
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, "cymonic-campaign-kit.zip");
+    };
+
+    const handleRegenerate = () => {
+        navigate('/agent-room');
+    };
+
+    if (!factSheet) {
         return (
-            <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-                <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', background: 'white', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
-                </div>
-                <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>About CYMONIC</h2>
-                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '24px' }}>
-                    We are building the future of autonomous content generation.
-                    By combining advanced edge computing with multi-agent intelligence, we remove the friction from creating high-converting marketing campaigns.
-                </p>
-                <button className="btn btn-primary">Join our Team</button>
+            <div style={{ textAlign: 'center', marginTop: '50px' }}>
+                <h2>No Campaign Data</h2>
+                <a href="/" className="btn btn-primary" style={{ marginTop: '20px' }}>Go Back</a>
             </div>
         );
     }
+
+    return (
+        <div className="review-dashboard fade-in">
+            <div className="glass-panel sidebar-panel">
+                <h3 style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px', marginBottom: '8px' }}>
+                    Extracted Fact-Sheet
+                </h3>
+
+                <div className="source-truth">
+                    <p><strong>Product/Topic:</strong> {factSheet.product}</p>
+                    <p><strong>Target Audience:</strong> {factSheet.audience}</p>
+                    <p><strong>Detected Tone:</strong> <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{factSheet.tone}</span></p>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
+                    <p><strong>Value Proposition:</strong><br />{factSheet.valueProp}</p>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
+                    <p><strong>Core Features / Entities:</strong></p>
+                    <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                        {[...factSheet.features, ...factSheet.entities, ...factSheet.technical].filter(Boolean).slice(0, 6).map((f, i) => <li key={i}>{f}</li>)}
+                    </ul>
+                    {factSheet.metrics && factSheet.metrics.length > 0 && (
+                        <>
+                            <p style={{ marginTop: '8px' }}><strong>Strict Metrics:</strong></p>
+                            <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
+                                {factSheet.metrics.slice(0, 3).map((f, i) => <li key={i}>{f}</li>)}
+                            </ul>
+                        </>
+                    )}
+                </div>
+
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleCopyAll}>
+                        <Copy size={16} /> Copy All to Clipboard
+                    </button>
+                    <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleExportZip}>
+                        <Download size={16} /> Export Kit (.zip)
+                    </button>
+                </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="content-tabs" style={{ flexWrap: 'wrap', gap: '4px' }}>
+                        <button className={`tab-btn ${activeTab === 'blog' ? 'active' : ''}`} onClick={() => setActiveTab('blog')}>
+                            <FileText size={15} /> Blog
+                        </button>
+                        <button className={`tab-btn ${activeTab === 'social' ? 'active' : ''}`} onClick={() => setActiveTab('social')}>
+                            <MessageSquare size={15} /> Twitter
+                        </button>
+                        <button className={`tab-btn ${activeTab === 'email' ? 'active' : ''}`} onClick={() => setActiveTab('email')}>
+                            <Mail size={15} /> Email
+                        </button>
+                        <button className={`tab-btn ${activeTab === 'linkedin' ? 'active' : ''}`} onClick={() => setActiveTab('linkedin')}>
+                            <Briefcase size={15} /> LinkedIn
+                        </button>
+                        <button className={`tab-btn ${activeTab === 'instagram' ? 'active' : ''}`} onClick={() => setActiveTab('instagram')}>
+                            <Camera size={15} /> Instagram
+                        </button>
+                        <button className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`} onClick={() => setActiveTab('flashcards')}>
+                            <BookOpen size={15} /> Flashcards
+                        </button>
+                        <button className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
+                            <Lightbulb size={15} /> Insights
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.04)', padding: '4px', borderRadius: '8px' }}>
+                        <button
+                            className={`btn ${devicePreview === 'desktop' ? '' : 'btn-secondary'}`}
+                            style={{ background: devicePreview === 'desktop' ? 'var(--panel-bg)' : 'transparent', border: 'none' }}
+                            onClick={() => setDevicePreview('desktop')}
+                        >
+                            <Monitor size={18} />
+                        </button>
+                        <button
+                            className={`btn ${devicePreview === 'mobile' ? '' : 'btn-secondary'}`}
+                            style={{ background: devicePreview === 'mobile' ? 'var(--panel-bg)' : 'transparent', border: 'none' }}
+                            onClick={() => setDevicePreview('mobile')}
+                        >
+                            <Smartphone size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                <div className={`editor-view fade-in ${devicePreview === 'mobile' ? 'device-preview-mobile' : ''}`}>
+                    <div className="editor-header">
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }}></div>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }}></div>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }}></div>
+                        </div>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                            {activeTab === 'blog' ? 'blog-post.md' : activeTab === 'social' ? 'thread.txt' : activeTab === 'email' ? 'email-teaser.html' : activeTab === 'linkedin' ? 'linkedin-post.txt' : activeTab === 'instagram' ? 'instagram-captions.txt' : activeTab === 'flashcards' ? 'flashcards.txt' : 'key-insights.txt'}
+                        </span>
+                        <div></div>
+                    </div>
+                    <div className="editor-content">
+                        {activeTab === 'instagram' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {(outputs.instagram || []).map((slide, i) => (
+                                    <div key={i} style={{ padding: '16px', background: 'linear-gradient(135deg, #667eea22, #764ba222)', border: '1px solid #667eea44', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                        <div style={{ minWidth: '36px', height: '36px', background: 'linear-gradient(135deg, #667eea, #764ba2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px' }}>{i + 1}</div>
+                                        <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>{slide}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : activeTab === 'flashcards' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {(outputs.flashcards || []).map((card, i) => (
+                                    <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--panel-border)' }}>
+                                        <div style={{ padding: '12px 16px', background: 'var(--primary)', color: 'white', fontWeight: '600', fontSize: '13px' }}>Q{i + 1}: {card.q}</div>
+                                        <div style={{ padding: '12px 16px', background: '#f8f9ff', fontSize: '14px', lineHeight: '1.6', color: 'var(--text)' }}>→ {card.a}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : activeTab === 'insights' ? (
+                            <div className="insights-grid">
+                                {(outputs.insights || []).length === 0 ? (
+                                    <p style={{ color: 'var(--text-muted)' }}>No insights extracted.</p>
+                                ) : (
+                                    outputs.insights.map((ins, i) => (
+                                        <div key={i} className="insight-card fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+                                            <div className="insight-icon">
+                                                <BrainCircuit size={20} />
+                                            </div>
+                                            <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#3f3950', fontWeight: '500' }}>
+                                                {ins.replace(/^[\-•*]\s*/, '')}
+                                            </p>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        ) : (
+                            <div contentEditable suppressContentEditableWarning style={{ outline: 'none', whiteSpace: 'pre-wrap' }}>
+                                {outputs[activeTab]}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
+                    <button className="btn btn-secondary" onClick={handleRegenerate}>
+                        <RefreshCcw size={16} /> Regenerate
+                    </button>
+                    <button
+                        className="btn btn-success"
+                        onClick={() => {
+                            const newCampaign = {
+                                id: Date.now(),
+                                date: new Date().toISOString(),
+                                factSheet,
+                                outputs,
+                                title: factSheet.valueProp || "New Campaign"
+                            };
+                            saveCampaign(newCampaign);
+                            alert("Campaign saved to history!");
+                        }}
+                    >
+                        <CheckCircle size={16} /> Approve Draft
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function HistoryPage() {
+    const { campaignHistory, setFactSheet, setOutputs } = React.useContext(AppContext);
+    const navigate = useNavigate();
+
+    const handleView = (campaign) => {
+        setFactSheet(campaign.factSheet);
+        setOutputs(campaign.outputs);
+        navigate('/review');
+    };
+
+    return (
+        <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+            <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>Campaign History</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
+                Your past generated campaigns and content assets.
+            </p>
+            {campaignHistory.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>No campaigns saved yet. Generate one and approve it to see it here!</p>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {campaignHistory.map(campaign => (
+                        <div key={campaign.id} className="fade-in" style={{ padding: '24px', border: '1px solid var(--panel-border)', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff' }}>
+                            <div style={{ textAlign: 'left' }}>
+                                <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>{campaign.title}</h4>
+                                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                    Generated on {new Date(campaign.date).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <button className="btn btn-secondary" onClick={() => handleView(campaign)}>View Assets</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function AboutPage() {
+    return (
+        <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+            <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', background: 'white', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
+                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
+            </div>
+            <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>About CYMONIC</h2>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '24px' }}>
+                We are building the future of autonomous content generation.
+                By combining advanced edge computing with multi-agent intelligence, we remove the friction from creating high-converting marketing campaigns.
+            </p>
+            <button className="btn btn-primary">Join our Team</button>
+        </div>
+    );
+}
