@@ -259,6 +259,12 @@ function AgentRoomPage() {
     const [currentStep, setCurrentStep] = useState(0);
     const [logs, setLogs] = useState([]);
 
+    const feedEndRef = React.useRef(null);
+
+    useEffect(() => {
+        feedEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [logs]);
+
     useEffect(() => {
         const addLog = (msg, type = 'system', color = '') => {
             setLogs(prev => [...prev, { id: Date.now() + Math.random(), msg, type, color }]);
@@ -315,11 +321,8 @@ function AgentRoomPage() {
                                         product: data.data.product || "Unknown"
                                     });
                                 } else if (data.type === 'drafts') {
-                                    // social may be an array of numbered posts or a plain string
                                     const rawSocial = data.data.social || data.data.social_thread || "";
-                                    const socialText = Array.isArray(rawSocial)
-                                        ? rawSocial.join('\n\n')
-                                        : rawSocial;
+                                    const socialText = Array.isArray(rawSocial) ? rawSocial.join('\n\n') : rawSocial;
                                     setOutputs({
                                         blog: data.data.blog || data.data.blog_post || "",
                                         social: socialText,
@@ -354,79 +357,89 @@ function AgentRoomPage() {
             addLog("No source data found. Go back to upload.", "system", "var(--accent)");
             setCurrentStep(6);
         }
-    }, []); // run on mount only — works for both initial load and Regenerate navigation
+    }, []);
 
     return (
-        <div className="glass-panel" style={{ padding: '32px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div className="glass-panel" style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                 <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>The Agent Room</h2>
                 <p style={{ color: 'var(--text-muted)' }}>Watch the Autonomous Factory collaborate in real-time.</p>
             </div>
 
-            <div className="agent-grid">
-                <div className={`agent-card glass-panel fade-in ${currentStep === 1 ? 'active' : ''}`} style={{ transitionDelay: '0.1s' }}>
-                    <div className="agent-avatar"><Zap /></div>
-                    <h4 className="text-gradient-primary">NLP Preprocessor</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Text Cleanup</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 1 ? 1 : 0.4 }}>
-                        {currentStep === 1 ? <span className="typing-dot">Parsing</span> : 'Standby'}
+            <div className="agent-room-layout">
+                <div className="agent-col">
+                    <div className={`agent-card glass-panel fade-in ${currentStep === 1 ? 'active' : ''}`}>
+                        <div className="agent-avatar" style={{ width: '50px', height: '50px' }}><Zap size={24} /></div>
+                        <div>
+                            <h4 className="text-gradient-primary">NLP Preprocessor</h4>
+                            <div className="agent-status" style={{ opacity: currentStep === 1 ? 1 : 0.4 }}>
+                                {currentStep === 1 ? <span className="typing-dot">Parsing</span> : 'Standby'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`agent-card glass-panel fade-in ${currentStep === 2 ? 'active' : ''}`}>
+                        <div className="agent-avatar" style={{ width: '50px', height: '50px' }}><BrainCircuit size={24} /></div>
+                        <div>
+                            <h4 className="text-gradient-primary">Lead Research</h4>
+                            <div className="agent-status" style={{ opacity: currentStep === 2 ? 1 : 0.4 }}>
+                                {currentStep === 2 ? <span className="typing-dot">Extracting</span> : 'Standby'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`agent-card glass-panel fade-in ${(currentStep === 3 || currentStep === 4) ? 'active' : ''}`}>
+                        <div className="agent-avatar" style={{ width: '50px', height: '50px' }}><PenTool size={24} /></div>
+                        <div>
+                            <h4 style={{ color: 'var(--warning)' }}>Copywriter</h4>
+                            <div className="agent-status" style={{ opacity: (currentStep === 3 || currentStep === 4) ? 1 : 0.4 }}>
+                                {(currentStep === 3 || currentStep === 4) ? <span className="typing-dot">Generating</span> : 'Standby'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`agent-card glass-panel fade-in ${currentStep === 4 ? 'active' : ''}`}>
+                        <div className="agent-avatar" style={{ width: '50px', height: '50px' }}><Search size={24} /></div>
+                        <div>
+                            <h4 style={{ color: 'var(--warning)' }}>NLP Validator</h4>
+                            <div className="agent-status" style={{ opacity: currentStep === 4 ? 1 : 0.4 }}>
+                                {currentStep === 4 ? <span className="typing-dot">Scanning</span> : 'Standby'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={`agent-card glass-panel fade-in ${currentStep === 5 ? 'active' : ''}`}>
+                        <div className="agent-avatar" style={{ width: '50px', height: '50px' }}><ShieldCheck size={24} color="var(--success)" /></div>
+                        <div>
+                            <h4 style={{ color: 'var(--success)' }}>Editor-in-Chief</h4>
+                            <div className="agent-status" style={{ opacity: currentStep === 5 ? 1 : 0.4 }}>
+                                {currentStep === 5 ? <span className="typing-dot">Reviewing</span> : 'Standby'}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className={`agent-card glass-panel fade-in ${currentStep === 2 ? 'active' : ''}`} style={{ transitionDelay: '0.2s' }}>
-                    <div className="agent-avatar"><BrainCircuit /></div>
-                    <h4 className="text-gradient-primary">Lead Research</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Fact Extractor</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 2 ? 1 : 0.4 }}>
-                        {currentStep === 2 ? <span className="typing-dot">Extracting</span> : 'Standby'}
+                <div className="feed-col">
+                    <div className="chat-feed auto-scroll" style={{ height: '100%', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
+                        {logs.map(log => (
+                            <div key={log.id} className={`chat-message ${log.type}`} style={{ color: log.color || 'inherit' }}>
+                                {log.type === 'NLP Engine' && <Zap size={18} />}
+                                {log.type === 'Agent 1' && <BrainCircuit size={18} />}
+                                {log.type === 'Agent 2' && <PenTool size={18} />}
+                                {log.type === 'Agent 3' && <ShieldCheck size={18} />}
+                                <span style={{ fontSize: '14px', lineHeight: '1.4' }}>{log.msg}</span>
+                            </div>
+                        ))}
+                        <div ref={feedEndRef} />
+                        {currentStep === 6 && (
+                            <div style={{ textAlign: 'center', marginTop: 'auto', paddingTop: '24px' }} className="fade-in">
+                                <button className="btn btn-primary" onClick={() => navigate('/review')}>
+                                    View Final Campaign Layout <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
-
-                <div className={`agent-card glass-panel fade-in ${(currentStep === 3 || currentStep === 4) ? 'active' : ''}`} style={{ transitionDelay: '0.3s' }}>
-                    <div className="agent-avatar"><PenTool /></div>
-                    <h4 style={{ color: 'var(--warning)' }}>Copywriter</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>The Voice</p>
-                    <div className="agent-status" style={{ opacity: (currentStep === 3 || currentStep === 4) ? 1 : 0.4 }}>
-                        {(currentStep === 3 || currentStep === 4) ? <span className="typing-dot">Generating</span> : 'Standby'}
-                    </div>
-                </div>
-
-                <div className={`agent-card glass-panel fade-in ${currentStep === 4 ? 'active' : ''}`} style={{ transitionDelay: '0.4s' }}>
-                    <div className="agent-avatar"><Search /></div>
-                    <h4 style={{ color: 'var(--warning)' }}>NLP Validator</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Keyword Matcher</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 4 ? 1 : 0.4 }}>
-                        {currentStep === 4 ? <span className="typing-dot">Scanning</span> : 'Standby'}
-                    </div>
-                </div>
-
-                <div className={`agent-card glass-panel fade-in ${currentStep === 5 ? 'active' : ''}`} style={{ transitionDelay: '0.5s' }}>
-                    <div className="agent-avatar"><ShieldCheck color="var(--success)" /></div>
-                    <h4 style={{ color: 'var(--success)' }}>Editor-in-Chief</h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Gatekeeper</p>
-                    <div className="agent-status" style={{ opacity: currentStep === 5 ? 1 : 0.4 }}>
-                        {currentStep === 5 ? <span className="typing-dot">Reviewing</span> : 'Standby'}
-                    </div>
-                </div>
-            </div>
-
-            <div className="chat-feed auto-scroll">
-                {logs.map(log => (
-                    <div key={log.id} className={`chat-message ${log.type}`} style={{ color: log.color || 'inherit' }}>
-                        {log.type === 'NLP Engine' && <Zap size={18} />}
-                        {log.type === 'Agent 1' && <BrainCircuit size={18} />}
-                        {log.type === 'Agent 2' && <PenTool size={18} />}
-                        {log.type === 'Agent 3' && <ShieldCheck size={18} />}
-                        <span style={{ fontSize: '14px', lineHeight: '1.4' }}>{log.msg}</span>
-                    </div>
-                ))}
-                {currentStep === 6 && (
-                    <div style={{ textAlign: 'center', marginTop: '24px' }} className="fade-in">
-                        <button className="btn btn-primary" onClick={() => navigate('/review')}>
-                            View Final Campaign Layout <ChevronRight size={18} />
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );
