@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import {
@@ -60,7 +60,7 @@ export default function App() {
 
     return (
         <AppContext.Provider value={{ sourceData, setSourceData, factSheet, setFactSheet, outputs, setOutputs, campaignHistory, saveCampaign }}>
-            <BrowserRouter>
+            <HashRouter>
                 <Layout>
                     <Routes>
                         <Route path="/" element={<CampaignStartPage />} />
@@ -70,7 +70,7 @@ export default function App() {
                         <Route path="/about" element={<AboutPage />} />
                     </Routes>
                 </Layout>
-            </BrowserRouter>
+            </HashRouter>
         </AppContext.Provider>
     );
 }
@@ -89,7 +89,7 @@ function Layout({ children }) {
         <div className="app-container">
             <header className="floating-navbar fade-in">
                 <div className="nav-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer', background: 'transparent' }}>
-                    <img src="/logo.png" alt="Cymonic Logo" style={{ height: '32px', width: '32px' }} />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '32px', width: '32px' }} />
                 </div>
                 
                 <div className="nav-divider"></div>
@@ -633,7 +633,7 @@ function AboutPage() {
     return (
         <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
             <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', background: 'white', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-                <img src="/logo.png" alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
+                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
             </div>
             <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>About CYMONIC</h2>
             <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '24px' }}>
