@@ -21,10 +21,12 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--bg-color);
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
+    background: radial-gradient(circle at 15% 50%, rgba(108, 114, 255, 0.12), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(225, 29, 72, 0.08), transparent 25%),
+                var(--bg-color);
 }
 
 h1,
@@ -53,11 +55,17 @@ a {
 
 /* Reusable UI Components */
 .glass-panel {
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 24px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.04), inset 0 1px 1px rgba(255,255,255,0.8);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
+}
+
+.glass-panel:hover {
+    box-shadow: 0 12px 40px rgba(108, 114, 255, 0.08), inset 0 1px 1px rgba(255,255,255,0.9);
 }
 
 .btn {
@@ -152,16 +160,32 @@ a {
 @keyframes pulse-ring {
     0% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(108, 114, 255, 0.4);
+        box-shadow: 0 0 0 0 rgba(108, 114, 255, 0.6);
     }
     70% {
         transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(108, 114, 255, 0);
+        box-shadow: 0 0 0 14px rgba(108, 114, 255, 0);
     }
     100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(108, 114, 255, 0);
     }
+}
+
+@keyframes float-icon {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes typing {
+    0% { content: "."; }
+    33% { content: ".."; }
+    66% { content: "..."; }
+}
+
+.typing-dot::after {
+    content: "";
+    animation: typing 1.5s infinite;
 }
 
 .fade-in {
@@ -265,19 +289,37 @@ a {
 
 /* Start Page Specifics */
 .upload-zone {
-    border: 2px dashed rgba(0, 0, 0, 0.1);
+    border: 2px dashed rgba(108, 114, 255, 0.3);
     border-radius: 24px;
     padding: 60px 20px;
     text-align: center;
-    transition: all 0.2s ease;
-    background: #ffffff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.7);
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-zone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at center, rgba(108, 114, 255, 0.05), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.upload-zone:hover::before,
+.upload-zone.drag-active::before {
+    opacity: 1;
 }
 
 .upload-zone:hover,
 .upload-zone.drag-active {
     border-color: var(--primary);
     background: var(--secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(108, 114, 255, 0.1);
 }
 
 .upload-icon {
@@ -286,6 +328,7 @@ a {
     color: var(--primary);
     margin-bottom: 16px;
     opacity: 0.9;
+    animation: float-icon 3s ease-in-out infinite;
 }
 
 /* Agent Room Specifics */
@@ -379,11 +422,11 @@ a {
     gap: 16px;
     padding: 16px 20px;
     border-radius: 16px;
-    background: #f8f6fd;
+    background: #ffffff;
     border-left: 4px solid var(--primary);
     animation: fadeIn 0.3s ease-out forwards;
     color: var(--text-main);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
 }
 
 .chat-message.system {
@@ -394,6 +437,42 @@ a {
     font-style: italic;
     font-size: 13px;
     box-shadow: none;
+}
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    padding: 8px;
+}
+
+.insight-card {
+    background: linear-gradient(145deg, #ffffff, #f9f8fc);
+    border: 1px solid rgba(108, 114, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: transform 0.2s;
+}
+
+.insight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(108, 114, 255, 0.08);
+}
+
+.insight-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #e5e7fa;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 /* Final Review Page Specifics */
