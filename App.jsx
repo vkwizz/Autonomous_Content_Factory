@@ -702,16 +702,69 @@ function HistoryPage() {
 
 function AboutPage() {
     return (
-        <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', background: 'white', borderRadius: '16px', border: '1px solid var(--panel-border)' }}>
-                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
+        <div className="fade-in" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
+            {/* Header Section */}
+            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
+                <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', background: 'white', borderRadius: '16px', border: '1px solid var(--panel-border)', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
+                </div>
+                <h1 style={{ marginBottom: '16px', fontSize: '36px' }} className="title-gradient">About CYMONIC</h1>
+                <p style={{ color: 'var(--text-muted)', lineHeight: '1.8', fontSize: '18px', maxWidth: '700px', margin: '0 auto 24px auto' }}>
+                    We are building the future of autonomous content generation. By combining advanced edge computing with multi-agent intelligence, we remove the friction from creating high-converting marketing campaigns, transforming raw ideas into multi-channel ecosystems in seconds.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                    <button className="btn btn-primary">Join our Team</button>
+                    <button className="btn btn-secondary">Contact Sales</button>
+                </div>
             </div>
-            <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>About CYMONIC</h2>
-            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '24px' }}>
-                We are building the future of autonomous content generation.
-                By combining advanced edge computing with multi-agent intelligence, we remove the friction from creating high-converting marketing campaigns.
-            </p>
-            <button className="btn btn-primary">Join our Team</button>
+
+            {/* Core Pillars */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
+                <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.3s ease', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                    <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))', color: 'var(--primary)', marginBottom: '20px', width: '64px', height: '64px' }}>
+                        <BrainCircuit size={32} />
+                    </div>
+                    <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>AI-Native Architecture</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                        Built from the ground up for LLMs. Our multi-agent system orchestrates specialized bots to execute complex workflows, ensuring human-level quality without the overhead.
+                    </p>
+                </div>
+                <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.3s ease', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                    <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, rgba(39, 201, 63, 0.1), rgba(0, 168, 107, 0.1))', color: 'var(--success)', marginBottom: '20px', width: '64px', height: '64px' }}>
+                        <ShieldCheck size={32} />
+                    </div>
+                    <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Zero Hallucinations</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                        Our proprietary Editor-in-Chief model cross-references every generated claim against your original source documents, guaranteeing brand safety and factual accuracy.
+                    </p>
+                </div>
+                <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.3s ease', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                    <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, rgba(255, 189, 46, 0.1), rgba(255, 136, 0, 0.1))', color: 'var(--warning)', marginBottom: '20px', width: '64px', height: '64px' }}>
+                        <Zap size={32} />
+                    </div>
+                    <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Instant Deployment</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                        From raw, messy notes to production-ready blogs, threads, emails, and platform-specific assets. What used to take weeks now takes mere seconds.
+                    </p>
+                </div>
+            </div>
+
+            {/* Stats / Company Info */}
+            <div className="glass-panel" style={{ padding: '40px', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '32px', background: 'linear-gradient(180deg, rgba(255,255,255,0.8), rgba(245,247,255,0.8))' }}>
+                <div style={{ textAlign: 'center', minWidth: '150px' }}>
+                    <h2 style={{ fontSize: '42px', color: 'var(--primary)', marginBottom: '8px', fontWeight: '800' }}>10x</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', margin: 0 }}>Content Velocity</p>
+                </div>
+                <div style={{ textAlign: 'center', minWidth: '150px' }}>
+                    <h2 style={{ fontSize: '42px', color: 'var(--success)', marginBottom: '8px', fontWeight: '800' }}>99%</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', margin: 0 }}>Factual Accuracy</p>
+                </div>
+                <div style={{ textAlign: 'center', minWidth: '150px' }}>
+                    <h2 style={{ fontSize: '42px', color: 'var(--warning)', marginBottom: '8px', fontWeight: '800' }}>5+</h2>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', margin: 0 }}>Autonomous Agents</p>
+                </div>
+            </div>
         </div>
     );
 }
+
