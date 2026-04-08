@@ -143,7 +143,6 @@ function CampaignStartPage() {
     const loadFileText = (file) => {
         if (!file) return;
 
-        // Block binary formats — only plain text files are safe to readAsText
         const allowedTypes = ['text/plain', 'text/markdown', 'text/x-markdown'];
         const allowedExts = ['.txt', '.md'];
         const ext = '.' + file.name.split('.').pop().toLowerCase();
@@ -294,7 +293,7 @@ function AgentRoomPage() {
 
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
-                    buffer = lines.pop(); // keep remainder
+                    buffer = lines.pop();
 
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
@@ -446,9 +445,12 @@ function AgentRoomPage() {
 }
 
 function FinalReviewPage() {
-    const { factSheet, outputs, saveCampaign } = React.useContext(AppContext);
+    const { factSheet, outputs, setOutputs, saveCampaign } = React.useContext(AppContext);
     const [activeTab, setActiveTab] = useState('blog');
     const [devicePreview, setDevicePreview] = useState('desktop');
+    const [feedback, setFeedback] = useState('');
+    const [isRefining, setIsRefining] = useState(false);
+    const [refineLogs, setRefineLogs] = useState([]);
     const navigate = useNavigate();
 
     const handleCopyAll = () => {
@@ -475,6 +477,57 @@ function FinalReviewPage() {
 
     const handleRegenerate = () => {
         navigate('/agent-room');
+    };
+
+    const handleRefine = async () => {
+        if (!feedback.trim()) return alert("Please enter feedback first.");
+        setIsRefining(true);
+        setRefineLogs([{ id: 'start', msg: `Sending feedback for ${activeTab}...`, type: 'system' }]);
+
+        try {
+            const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/refine';
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    factSheet,
+                    currentOutputs: outputs,
+                    feedback,
+                    targetTab: activeTab
+                })
+            });
+
+            if (!response.ok) throw new Error("Server error during refinement");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                const lines = decoder.decode(value).split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = JSON.parse(line.substring(6));
+                        if (data.type === 'log') {
+                            setRefineLogs(prev => [...prev, { id: Date.now() + Math.random(), ...data.log }]);
+                        } else if (data.type === 'refinementComplete') {
+                            setOutputs(prev => ({ ...prev, ...data.data }));
+                            setFeedback('');
+                            setIsRefining(false);
+                            alert(`${activeTab} has been refined!`);
+                        } else if (data.type === 'error') {
+                            alert("Error: " + data.error);
+                            setIsRefining(false);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            setIsRefining(false);
+        }
     };
 
     if (!factSheet) {
@@ -504,159 +557,66 @@ function FinalReviewPage() {
                     <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
                         {[...factSheet.features, ...factSheet.entities, ...factSheet.technical].filter(Boolean).slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
                     </ul>
-                    {factSheet.constraints?.length > 0 && (<>
-                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                        <p><strong style={{ color: 'var(--warning)' }}>⚠ Constraints:</strong></p>
-                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                            {factSheet.constraints.map((c, i) => <li key={i}>{c}</li>)}
-                        </ul>
-                    </>)}
-                    {factSheet.uncertainties?.length > 0 && (<>
-                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                        <p><strong style={{ color: 'var(--accent)' }}>⚡ Uncertainties:</strong></p>
-                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                            {factSheet.uncertainties.map((u, i) => <li key={i}>{u}</li>)}
-                        </ul>
-                    </>)}
-                    {factSheet.metrics?.length > 0 && (<>
-                        <hr style={{ border: 'none', borderTop: '1px solid var(--panel-border)', margin: '12px 0' }} />
-                        <p><strong style={{ color: 'var(--success)' }}>📊 Strict Metrics:</strong></p>
-                        <ul style={{ paddingLeft: '20px', marginTop: '4px', fontSize: '13px' }}>
-                            {factSheet.metrics.map((m, i) => <li key={i}>{m}</li>)}
-                        </ul>
-                    </>)}
                 </div>
 
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleCopyAll}>
-                        <Copy size={16} /> Copy All to Clipboard
+                        <Copy size={16} /> Copy All
                     </button>
                     <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleExportZip}>
-                        <Download size={16} /> Export Kit (.zip)
+                        <Download size={16} /> Export ZIP
                     </button>
                 </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="content-tabs" style={{ flexWrap: 'wrap', gap: '4px' }}>
-                        <button className={`tab-btn ${activeTab === 'blog' ? 'active' : ''}`} onClick={() => setActiveTab('blog')}>
-                            <FileText size={15} /> Blog
-                        </button>
-                        <button className={`tab-btn ${activeTab === 'social' ? 'active' : ''}`} onClick={() => setActiveTab('social')}>
-                            <MessageSquare size={15} /> Twitter
-                        </button>
-                        <button className={`tab-btn ${activeTab === 'email' ? 'active' : ''}`} onClick={() => setActiveTab('email')}>
-                            <Mail size={15} /> Email
-                        </button>
-                        <button className={`tab-btn ${activeTab === 'linkedin' ? 'active' : ''}`} onClick={() => setActiveTab('linkedin')}>
-                            <Briefcase size={15} /> LinkedIn
-                        </button>
-                        <button className={`tab-btn ${activeTab === 'instagram' ? 'active' : ''}`} onClick={() => setActiveTab('instagram')}>
-                            <Camera size={15} /> Instagram
-                        </button>
-                        <button className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`} onClick={() => setActiveTab('flashcards')}>
-                            <BookOpen size={15} /> Flashcards
-                        </button>
-                        <button className={`tab-btn ${activeTab === 'insights' ? 'active' : ''}`} onClick={() => setActiveTab('insights')}>
-                            <Lightbulb size={15} /> Insights
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.04)', padding: '4px', borderRadius: '8px' }}>
-                        <button
-                            className={`btn ${devicePreview === 'desktop' ? '' : 'btn-secondary'}`}
-                            style={{ background: devicePreview === 'desktop' ? 'var(--panel-bg)' : 'transparent', border: 'none' }}
-                            onClick={() => setDevicePreview('desktop')}
-                        >
-                            <Monitor size={18} />
-                        </button>
-                        <button
-                            className={`btn ${devicePreview === 'mobile' ? '' : 'btn-secondary'}`}
-                            style={{ background: devicePreview === 'mobile' ? 'var(--panel-bg)' : 'transparent', border: 'none' }}
-                            onClick={() => setDevicePreview('mobile')}
-                        >
-                            <Smartphone size={18} />
-                        </button>
+            <div className="glass-panel" style={{ padding: '24px', flex: 1, position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                    <div className="content-tabs">
+                        {['blog', 'social', 'email', 'linkedin', 'instagram', 'flashcards', 'insights'].map(tab => (
+                            <button key={tab} className={`tab-btn ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                <div className={`editor-view fade-in ${devicePreview === 'mobile' ? 'device-preview-mobile' : ''}`}>
-                    <div className="editor-header">
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ff5f56' }}></div>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ffbd2e' }}></div>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#27c93f' }}></div>
-                        </div>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-                            {activeTab === 'blog' ? 'blog-post.md' : activeTab === 'social' ? 'thread.txt' : activeTab === 'email' ? 'email-teaser.html' : activeTab === 'linkedin' ? 'linkedin-post.txt' : activeTab === 'instagram' ? 'instagram-captions.txt' : activeTab === 'flashcards' ? 'flashcards.txt' : 'key-insights.txt'}
-                        </span>
-                        <div></div>
-                    </div>
-                    <div className="editor-content">
-                        {activeTab === 'instagram' ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {(outputs.instagram || []).map((slide, i) => (
-                                    <div key={i} style={{ padding: '16px', background: 'linear-gradient(135deg, #667eea22, #764ba222)', border: '1px solid #667eea44', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                        <div style={{ minWidth: '36px', height: '36px', background: 'linear-gradient(135deg, #667eea, #764ba2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px' }}>{i + 1}</div>
-                                        <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>{slide}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : activeTab === 'flashcards' ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {(outputs.flashcards || []).map((card, i) => (
-                                    <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--panel-border)' }}>
-                                        <div style={{ padding: '12px 16px', background: 'var(--primary)', color: 'white', fontWeight: '600', fontSize: '13px' }}>Q{i + 1}: {card.q}</div>
-                                        <div style={{ padding: '12px 16px', background: '#f8f9ff', fontSize: '14px', lineHeight: '1.6', color: 'var(--text)' }}>→ {card.a}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : activeTab === 'insights' ? (
-                            <div className="insights-grid">
-                                {(outputs.insights || []).length === 0 ? (
-                                    <p style={{ color: 'var(--text-muted)' }}>No insights extracted.</p>
-                                ) : (
-                                    outputs.insights.map((ins, i) => (
-                                        <div key={i} className="insight-card fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
-                                            <div className="insight-icon">
-                                                <BrainCircuit size={20} />
-                                            </div>
-                                            <p style={{ fontSize: '14px', lineHeight: '1.5', color: '#3f3950', fontWeight: '500' }}>
-                                                {ins.replace(/^[\-•*]\s*/, '')}
-                                            </p>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                <div className={`editor-view ${devicePreview === 'mobile' ? 'device-preview-mobile' : ''}`}>
+                    <div className="editor-content" style={{ position: 'relative', minHeight: '400px' }}>
+                        {activeTab === 'instagram' || activeTab === 'flashcards' || activeTab === 'insights' ? (
+                            <div>Rendering {activeTab}...</div>
                         ) : (
                             <div contentEditable suppressContentEditableWarning style={{ outline: 'none', whiteSpace: 'pre-wrap' }}>
                                 {outputs[activeTab]}
                             </div>
                         )}
+
+                        {isRefining && (
+                            <div className="refine-overlay fade-in" style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.9)', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', borderRadius: '12px' }}>
+                                <div className="typing-dot" style={{ marginBottom: '20px', fontSize: '18px', fontWeight: 'bold' }}>Refining...</div>
+                                <div className="chat-feed" style={{ width: '100%', maxHeight: '200px', overflowY: 'auto' }}>
+                                    {refineLogs.map(log => <div key={log.id} style={{ fontSize: '12px', marginBottom: '4px' }}>{log.msg}</div>)}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
+                <div className="feedback-section" style={{ marginTop: '20px', padding: '16px', borderTop: '1px solid var(--panel-border)' }}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <input
+                            type="text"
+                            className="input-field"
+                            placeholder={`Feedback for ${activeTab}...`}
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                        />
+                        <button className="btn btn-primary" onClick={handleRefine} disabled={isRefining}>Apply</button>
+                    </div>
+                </div>
+                
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px' }}>
-                    <button className="btn btn-secondary" onClick={handleRegenerate}>
-                        <RefreshCcw size={16} /> Regenerate
-                    </button>
-                    <button
-                        className="btn btn-success"
-                        onClick={() => {
-                            const newCampaign = {
-                                id: Date.now(),
-                                date: new Date().toISOString(),
-                                factSheet,
-                                outputs,
-                                title: factSheet.valueProp || "New Campaign"
-                            };
-                            saveCampaign(newCampaign);
-                            alert("Campaign saved to history!");
-                        }}
-                    >
-                        <CheckCircle size={16} /> Approve Draft
-                    </button>
+                    <button className="btn btn-secondary" onClick={handleRegenerate}>Regenerate All</button>
+                    <button className="btn btn-success" onClick={() => { saveCampaign({ id: Date.now(), factSheet, outputs, title: factSheet.product }); alert("Saved!"); }}>Approve Draft</button>
                 </div>
             </div>
         </div>
@@ -667,104 +627,19 @@ function HistoryPage() {
     const { campaignHistory, setFactSheet, setOutputs } = React.useContext(AppContext);
     const navigate = useNavigate();
 
-    const handleView = (campaign) => {
-        setFactSheet(campaign.factSheet);
-        setOutputs(campaign.outputs);
-        navigate('/review');
-    };
-
     return (
-        <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '28px' }}>Campaign History</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-                Your past generated campaigns and content assets.
-            </p>
-            {campaignHistory.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)' }}>No campaigns saved yet. Generate one and approve it to see it here!</p>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {campaignHistory.map(campaign => (
-                        <div key={campaign.id} className="fade-in" style={{ padding: '24px', border: '1px solid var(--panel-border)', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff' }}>
-                            <div style={{ textAlign: 'left' }}>
-                                <h4 style={{ fontSize: '16px', marginBottom: '4px' }}>{campaign.title}</h4>
-                                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                                    Generated on {new Date(campaign.date).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <button className="btn btn-secondary" onClick={() => handleView(campaign)}>View Assets</button>
-                        </div>
-                    ))}
+        <div className="glass-panel fade-in" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+            <h2>History</h2>
+            {campaignHistory.map(c => (
+                <div key={c.id} style={{ padding: '20px', border: '1px solid #eee', marginBottom: '10px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{c.title}</span>
+                    <button onClick={() => { setFactSheet(c.factSheet); setOutputs(c.outputs); navigate('/review'); }}>View</button>
                 </div>
-            )}
+            ))}
         </div>
     );
 }
 
 function AboutPage() {
-    return (
-        <div className="fade-in" style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px', paddingBottom: '40px' }}>
-            {/* Header Section */}
-            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center' }}>
-                <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto', background: 'white', borderRadius: '16px', border: '1px solid var(--panel-border)', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Cymonic Logo" style={{ height: '56px', width: '56px' }} />
-                </div>
-                <h1 style={{ marginBottom: '16px', fontSize: '36px' }} className="title-gradient">About CYMONIC</h1>
-                <p style={{ color: 'var(--text-muted)', lineHeight: '1.8', fontSize: '18px', maxWidth: '700px', margin: '0 auto 24px auto' }}>
-                    We are building the future of autonomous content generation. By combining advanced edge computing with multi-agent intelligence, we remove the friction from creating high-converting marketing campaigns, transforming raw ideas into multi-channel ecosystems in seconds.
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
-                    <button className="btn btn-primary">Join our Team</button>
-                    <button className="btn btn-secondary">Contact Sales</button>
-                </div>
-            </div>
-
-            {/* Core Pillars */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
-                <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.3s ease', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                    <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))', color: 'var(--primary)', marginBottom: '20px', width: '64px', height: '64px' }}>
-                        <BrainCircuit size={32} />
-                    </div>
-                    <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>AI-Native Architecture</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                        Built from the ground up for LLMs. Our multi-agent system orchestrates specialized bots to execute complex workflows, ensuring human-level quality without the overhead.
-                    </p>
-                </div>
-                <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.3s ease', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                    <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, rgba(39, 201, 63, 0.1), rgba(0, 168, 107, 0.1))', color: 'var(--success)', marginBottom: '20px', width: '64px', height: '64px' }}>
-                        <ShieldCheck size={32} />
-                    </div>
-                    <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Zero Hallucinations</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                        Our proprietary Editor-in-Chief model cross-references every generated claim against your original source documents, guaranteeing brand safety and factual accuracy.
-                    </p>
-                </div>
-                <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', transition: 'transform 0.3s ease', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                    <div className="agent-avatar" style={{ background: 'linear-gradient(135deg, rgba(255, 189, 46, 0.1), rgba(255, 136, 0, 0.1))', color: 'var(--warning)', marginBottom: '20px', width: '64px', height: '64px' }}>
-                        <Zap size={32} />
-                    </div>
-                    <h3 style={{ marginBottom: '12px', fontSize: '20px', fontWeight: '600' }}>Instant Deployment</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                        From raw, messy notes to production-ready blogs, threads, emails, and platform-specific assets. What used to take weeks now takes mere seconds.
-                    </p>
-                </div>
-            </div>
-
-            {/* Stats / Company Info */}
-            <div className="glass-panel" style={{ padding: '40px', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '32px', background: 'linear-gradient(180deg, rgba(255,255,255,0.8), rgba(245,247,255,0.8))' }}>
-                <div style={{ textAlign: 'center', minWidth: '150px' }}>
-                    <h2 style={{ fontSize: '42px', color: 'var(--primary)', marginBottom: '8px', fontWeight: '800' }}>10x</h2>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', margin: 0 }}>Content Velocity</p>
-                </div>
-                <div style={{ textAlign: 'center', minWidth: '150px' }}>
-                    <h2 style={{ fontSize: '42px', color: 'var(--success)', marginBottom: '8px', fontWeight: '800' }}>99%</h2>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', margin: 0 }}>Factual Accuracy</p>
-                </div>
-                <div style={{ textAlign: 'center', minWidth: '150px' }}>
-                    <h2 style={{ fontSize: '42px', color: 'var(--warning)', marginBottom: '8px', fontWeight: '800' }}>5+</h2>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '700', margin: 0 }}>Autonomous Agents</p>
-                </div>
-            </div>
-        </div>
-    );
+    return <div className="glass-panel" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}><h2>About CYMONIC</h2></div>;
 }
-
