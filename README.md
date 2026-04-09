@@ -1,6 +1,6 @@
 # Autonomous Content Factory (CYMONIC)
 
-**Live Demo:** [https://cymonic-content-factory.vercel.app](https://cymonic-content-factory.vercel.app)
+**Live Demo:** https://vkwizz.github.io/Autonomous_Content_Factory/#/
 
 Autonomous Content Factory is an intelligent, multi-agent system designed to automatically transform raw source materials (like technical documents, product specs, or transcripts) into production-ready marketing campaigns. 
 
@@ -11,6 +11,7 @@ It uses a pipeline of AI agents (Lead Researcher, Creative Copywriter, Editor-in
 - **Multi-Agent Workflow:** Extracts facts, generates diverse content, and rigorously reviews for hallucinations and missing information.
 - **Support for Multiple Formats:** Generates outputs including Blog Posts, Social Threads, Email Teasers, LinkedIn posts, Instagram captions, Flashcards, and Key Insights.
 - **Strict Fact-Checking:** Integrates `compromise` (a local NLP engine) and an Editor-in-Chief LLM agent to enforce strict adherence to the provided fact sheet.
+- **Agent Refinement Loops:** Direct human-in-the-loop feedback allows you to fine-tune specific campaign assets with precise instructions.
 - **One-Click Export:** Download the entire AI-generated campaign as a `.zip` kit.
 - **Modern UI:** Built with React and Vite for a seamless, glassmorphism-styled dashboard experience.
 
