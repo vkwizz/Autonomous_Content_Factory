@@ -1,10 +1,6 @@
 # CYMONIC - Approach Document
 
-**Project Name:** Autonomous Content Factory (CYMONIC)  
-**Team Name:** [Your Team Name]  
-**Submission Date:** April 10, 2026  
 
----
 
 ## 1. Solution Design & Architecture
 
