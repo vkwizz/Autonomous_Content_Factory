@@ -32,7 +32,6 @@ If given more time, we would implement the following:
 *   **Dynamic Image Generation:** Integration with DALL-E 3 or Stable Diffusion to automatically generate on-brand social media graphics for the Instagram slides.
 *   **SEO Optimization Agent:** A specialized agent that performs real-time keyword volume analysis to optimize the blog posts for search rankings.
 *   **Multi-Format File Support:** Native parsing for PDF/DOCX files using OCR (currently supports text/markdown).
-*   **Feedback Loops:** Allowing the user to give specific feedback to an agent (e.g., "Make the tone more professional") and having the agent regenerate only the affected parts.
 
 ## 4. Additional Features Implemented
 
@@ -40,3 +39,4 @@ If given more time, we would implement the following:
 *   **Device Preview Toggles:** Instantly switch between Mobile and Desktop views for all generated content.
 *   **One-Click ZIP Export:** Automatically packages all markdown, HTML, and text assets into a single ZIP for immediate deployment.
 *   **Persistent History:** Uses LocalStorage to save past successful campaigns for easy retrieval.
+*   **Agent Refinement Feedback Loop:** Allows users to give specific feedback to agents (e.g., "Make the tone more professional") and has the agent regenerate only the affected parts with factual validation.

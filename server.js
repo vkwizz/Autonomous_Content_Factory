@@ -243,6 +243,71 @@ Did the Copywriter invent any facts, numbers, or names? If yes, status MUST be r
     res.end();
 });
 
+app.post('/api/refine', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const { factSheet, currentOutputs, feedback, targetTab } = req.body;
+
+    const sendLog = (agent, msg, color) => {
+        res.write(`data: ${JSON.stringify({ type: 'log', log: { agent, msg, color } })}\n\n`);
+    };
+
+    if (!factSheet || !feedback || !targetTab) {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: 'Missing required fields' })}\n\n`);
+        return res.end();
+    }
+
+    try {
+        sendLog('System', `Passing feedback for "${targetTab}" to refinement agents...`, 'var(--primary)');
+        sendLog('Agent 2', `Refining ${targetTab} with feedback: "${feedback}"`, 'var(--warning)');
+
+        const refinePrompt = `You are a Refinement Agent. Update the "${targetTab}" content based on the user's feedback.
+        
+        Rules:
+        - STAY FACTUAL: Use ONLY the Fact Sheet for facts.
+        - INCORPORATE FEEDBACK: "${feedback}"
+        - FORMAT: Return ONLY the updated value for "${targetTab}".
+        - If "${targetTab}" is "social", "instagram", "flashcards", or "insights", return an array. If it's a string (blog, email, linkedin), return a string.
+        - Output pure JSON object with key "${targetTab}".`;
+
+        const refineUserPrompt = `
+        FACT SHEET:
+        ${JSON.stringify(factSheet, null, 2)}
+
+        CURRENT ${targetTab.toUpperCase()}:
+        ${JSON.stringify(currentOutputs[targetTab], null, 2)}
+
+        USER FEEDBACK:
+        "${feedback}"
+
+        Please provide the refined content for "${targetTab}" as JSON.`;
+
+        const refinedContent = await callLLM(refinePrompt, refineUserPrompt);
+        
+        sendLog('Agent 3', 'Validating refined content for factual accuracy...', 'var(--success)');
+        
+        const validatorPrompt = `You are "Editor-in-Chief". Check if the refined "${targetTab}" introduces any fake facts not in the Fact Sheet.
+        Return JSON: {"status": "approved" | "rejected", "issues": []}`;
+        
+        const validation = await callLLM(validatorPrompt, `FACT SHEET: ${JSON.stringify(factSheet, null, 2)}\n\nREFINED CONTENT: ${JSON.stringify(refinedContent, null, 2)}`);
+        
+        if (validation.status === 'approved') {
+            sendLog('Agent 3', 'Refinement validated and approved.', 'var(--success)');
+        } else {
+            sendLog('Agent 3', `Warning: Refinement might have issues: ${validation.issues?.join(', ')}`, 'var(--accent)');
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'refinementComplete', data: refinedContent })}\n\n`);
+
+    } catch (err) {
+        console.error("Refinement Error:", err);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    }
+    res.end();
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT}`);

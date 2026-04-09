@@ -37,13 +37,12 @@ Rules:
 FACT SHEET:
 ${JSON.stringify(factSheet, null, 2)}
 
-Generate exactly these 4 keys:
-1. "blog" — 400 words, markdown format. Structure: Hook/Problem → Solution → Technical Analysis (mention constraints and uncertainties from fact sheet) → Conclusion.
-2. "social" — A 5-post Twitter/X thread. STRICT FORMAT: each post must start with its number like "1/", "2/", etc. Each post is a separate string in an array. Example: ["1/ Logistics companies lose millions daily due to inefficient routing.", "2/ The answer lies in AI..."]
-3. "email" — 2-4 line teaser only, click-focused, starts with a hook question or bold claim.
-4. "linkedin" — Exactly 120 words. STRICT FORMAT: Start with a bold 1-line Hook. Then 2-3 lines of insight/storytelling grounded in the fact sheet. Mention one constraint or uncertainty. End with a thought-provoking question. Use line breaks between sections.
+Generate exactly these 3 keys:
+1. "instagram" — array of exactly 5 strings (visual captions, engaging hook, emoji ok, each based on a fact sheet item).
+2. "flashcards" — array of exactly 5 objects each with "q" and "a" string keys. IMPORTANT: Answers must be COMPLETE and DETAILED, citing specific data from the fact sheet (e.g. list multiple items, not just one word). Bad example: A: "Traffic data". Good example: A: "Real-time traffic data, weather conditions, and last-mile delivery patterns from the fact sheet's technical_details".
+3. "insights" — array of exactly 5 strings. Each insight must go BEYOND the obvious. Include: trade-offs, risks, engineering challenges, or unexpected implications pulled from the fact sheet's constraints, uncertainties, and risks fields. Bad: "AI improves delivery times". Good: "Accuracy may degrade during unpredictable events like road closures — a risk explicitly flagged in the system design".
 
-Return pure JSON with EXACTLY these 4 keys. "social" must be an ARRAY of strings, not a single string.`;
+Return pure JSON with EXACTLY these 3 keys.`;
 
     try {
         const response = await openai.chat.completions.create({
